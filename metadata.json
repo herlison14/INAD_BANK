@@ -1,0 +1,5 @@
+{
+  "name": "Painel de Inadimplência",
+  "description": "Um painel de Business Intelligence para monitorar e gerenciar contratos inadimplentes, oferecendo insights detalhados por perfil de usuário e permitindo a importação de dados via planilhas.",
+  "requestFramePermissions": []
+}
