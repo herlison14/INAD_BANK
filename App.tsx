@@ -27,7 +27,6 @@ const AppContent: React.FC = () => {
   const { healingError } = useSelfHealing();
   const { 
     allContracts, 
-    setAllContracts, 
     notifications, 
     setNotifications,
     tasks, 
@@ -36,7 +35,6 @@ const AppContent: React.FC = () => {
     importHashes
   } = useApp();
 
-  // ESTADO DE AUTENTICAÇÃO E GOVERNANÇA
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loggedUser, setLoggedUser] = useState<User | null>(null);
 
@@ -71,26 +69,22 @@ const AppContent: React.FC = () => {
     localStorage.setItem('darkMode', String(darkMode));
   }, [darkMode]);
 
-  // MOTOR DE SEGURANÇA: RLS (Row Level Security) - Blindagem de Carteira
   const filteredContracts = useMemo(() => {
     if (!loggedUser) return [];
 
     const userPA = (loggedUser.pa || '').trim().toUpperCase();
     const userName = (loggedUser.name || '').trim().toUpperCase();
 
-    // 1. Hierarquia de Acesso Rigorosa
     let visibleData: Contract[] = [];
     if (loggedUser.role === UserRole.Admin) {
       visibleData = allContracts;
     } else {
-      // O Gerente "enxerga" apenas os contratos que a planilha atribuiu a ele e ao seu PA
       visibleData = allContracts.filter(c => 
         (c.pa || '').trim().toUpperCase() === userPA && 
         (c.gerente || '').trim().toUpperCase() === userName
       );
     }
 
-    // 2. Filtros de Interface sobre a base permitida
     return visibleData.filter(contract => {
       if (debouncedSearch) {
         const s = debouncedSearch.toLowerCase();
@@ -113,7 +107,6 @@ const AppContent: React.FC = () => {
     setLoggedUser(null);
     setIsLoading(true);
     sessionStorage.clear();
-    window.scrollTo(0, 0);
     setActiveView('Dashboard Principal');
   }, []);
 
@@ -122,7 +115,6 @@ const AppContent: React.FC = () => {
     return {
       totalFormatted: total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
       count: filteredContracts.length,
-      recoveryEst: (total * 0.12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
     };
   }, [filteredContracts]);
 
@@ -131,7 +123,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="flex h-screen overflow-hidden font-sans transition-colors duration-300 bg-[#f8faff] dark:bg-[#0f172a]">
       <Sidebar 
         isOpen={sidebarOpen} 
         activeView={activeView} 
@@ -152,28 +144,54 @@ const AppContent: React.FC = () => {
           onLogout={handleLogout}
           searchValue={globalSearch}
           onSearchChange={setGlobalSearch}
+          onDataImported={() => setActiveView('Dashboard Principal')}
         />
         
-        {/* Ticker de Governança Auditado */}
-        <div className="h-10 bg-slate-900 dark:bg-black text-white flex items-center overflow-hidden border-b border-white/5 relative z-20 shadow-2xl">
-          <div className="absolute left-0 top-0 bottom-0 bg-blue-600 px-6 flex items-center z-30 shadow-xl border-r border-white/10">
+        {/* Ticker Bar Estilizada */}
+        <div className="h-10 bg-indigo-900 dark:bg-black text-white flex items-center overflow-hidden border-b border-white/5 relative z-20 shadow-xl shrink-0">
+          <div className="absolute left-0 top-0 bottom-0 bg-indigo-600 px-6 flex items-center z-30 shadow-xl border-r border-white/10">
              <span className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-3">
-               <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-ping" /> {loggedUser?.role === UserRole.Admin ? 'GOVERNANÇA GLOBAL' : `PA ${loggedUser?.pa}`}
+               <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-ping" /> {loggedUser?.role === UserRole.Admin ? 'PREMIUM GLOBAL' : `UNIDADE ${loggedUser?.pa}`}
              </span>
           </div>
-          <div className="flex animate-infinite-scroll whitespace-nowrap gap-16 items-center pl-72">
-            <span className="text-xs font-bold uppercase tracking-tight">SALDO EM MONITORAMENTO: <span className="text-blue-400">{stats.totalFormatted}</span></span>
-            <span className="text-xs font-bold uppercase tracking-tight">BASE DE DADOS: <span className="text-amber-400">RENOVADA (PROTOCOLO TRUNCATE)</span></span>
-            <span className="text-xs font-bold uppercase tracking-tight">SESSÃO: <span className="text-green-400">AUDITADA SICOOB</span></span>
-            <span className="text-xs font-bold uppercase tracking-tight italic opacity-40">ASSINATURAS DE PLANILHAS: {importHashes.length}</span>
+          <div className="flex animate-infinite-scroll whitespace-nowrap gap-16 items-center pl-80">
+            <span className="text-xs font-bold uppercase tracking-tight">SALDO SOB MONITORAMENTO: <span className="text-indigo-300">{stats.totalFormatted}</span></span>
+            <span className="text-xs font-bold uppercase tracking-tight">ESTADO DA REDE: <span className={allContracts.length > 0 ? "text-green-400" : "text-red-400"}>{allContracts.length > 0 ? "SINCRONIZADA" : "AGUARDANDO IMPORTAÇÃO"}</span></span>
+            <span className="text-xs font-bold uppercase tracking-tight italic opacity-40">CARGAS ATIVAS: {importHashes.length}</span>
+            <span className="text-xs font-bold uppercase tracking-tight">SALDO SOB MONITORAMENTO: <span className="text-indigo-300">{stats.totalFormatted}</span></span>
+            <span className="text-xs font-bold uppercase tracking-tight">ESTADO DA REDE: <span className={allContracts.length > 0 ? "text-green-400" : "text-red-400"}>{allContracts.length > 0 ? "SINCRONIZADA" : "AGUARDANDO IMPORTAÇÃO"}</span></span>
           </div>
         </div>
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50/50 dark:bg-slate-950">
+        {/* Abas Superiores Estilo Premium */}
+        <div className="nav-glass px-10 pt-4 flex gap-10 border-b border-slate-200/60 dark:border-slate-800 shrink-0">
+            {[
+                {id: 'Dashboard Principal', label: 'DASHBOARD GERAL'},
+                {id: 'Cartões em Atraso', label: 'LISTA DE CARTÕES'},
+                {id: 'Calculadora', label: 'SIMULADOR DE ACORDO'},
+                {id: 'Detalhamento', label: 'ANÁLISE DETALHADA'}
+            ].map(t => (
+                <button 
+                    key={t.id} 
+                    onClick={() => setActiveView(t.id)} 
+                    className={`pb-4 text-[11px] font-black tracking-widest transition-all uppercase border-b-4 whitespace-nowrap ${activeView === t.id ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+                >
+                    {t.label}
+                </button>
+            ))}
+        </div>
+
+        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-10">
           <AnimatePresence mode="wait">
             {isLoading ? (
               <motion.div key="loader" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} className="p-8 space-y-6">
-                <Skeleton className="h-[250px] w-full rounded-[3rem]" />
+                <Skeleton className="h-[300px] w-full rounded-[3.5rem]" />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <Skeleton className="h-40 w-full rounded-3xl" />
+                    <Skeleton className="h-40 w-full rounded-3xl" />
+                    <Skeleton className="h-40 w-full rounded-3xl" />
+                    <Skeleton className="h-40 w-full rounded-3xl" />
+                </div>
               </motion.div>
             ) : (
               <motion.div 
@@ -184,12 +202,21 @@ const AppContent: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="p-4 sm:p-10"
               >
-                {['Dashboard Principal', 'Cartões em Atraso', 'Análise Dinâmica', 'Detalhamento'].includes(activeView) && (
+                {['Dashboard Principal', 'Cartões em Atraso', 'Análise Dinâmica', 'Detalhamento'].includes(activeView) && allContracts.length > 0 && (
                    <FilterBar data={filteredContracts} onFilterChange={setFilters} />
                 )}
 
-                {activeView === 'Dashboard Principal' && <Dashboard contracts={filteredContracts} filterName="Estratégico" onNavigateToDetails={(id) => { setGlobalSearch(id); setActiveView('Detalhamento'); }} isDarkMode={darkMode} userRole={loggedUser!.role} />}
-                {activeView === 'Importação' && <ImportacaoView onDataImported={(data) => { /* renovação via renewDatabase dentro do FileImporter */ }} contractCount={allContracts.length} />}
+                {activeView === 'Dashboard Principal' && (
+                  <Dashboard 
+                    contracts={filteredContracts} 
+                    filterName="Estratégico" 
+                    onNavigateToDetails={(id) => { setGlobalSearch(id); setActiveView('Detalhamento'); }} 
+                    isDarkMode={darkMode} 
+                    userRole={loggedUser!.role} 
+                    onGoToImport={() => setActiveView('Importação')}
+                  />
+                )}
+                {activeView === 'Importação' && <ImportacaoView onDataImported={() => setActiveView('Dashboard Principal')} contractCount={allContracts.length} />}
                 {activeView === 'Insights de IA' && (
                   <InsightsIAView 
                     contracts={filteredContracts} 

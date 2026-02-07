@@ -1,18 +1,25 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Painel de Inadimplência Sênior</title>
+    <title>CONV-BASE | Premium Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         darkMode: 'class',
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+            },
             colors: {
+              indigo: {
+                600: '#4f46e5',
+                700: '#4338ca',
+              },
               slate: {
                 850: '#1e293b',
                 900: '#0f172a',
@@ -58,6 +65,53 @@
         }
       }
     </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        body { 
+            background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
+        }
+
+        .premium-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.1);
+        }
+
+        .dark .premium-card {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .dark .nav-glass {
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-grad {
+            background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-grad:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+
+        .tab-active {
+            color: #4f46e5;
+            border-bottom: 4px solid #4f46e5;
+        }
+    </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script type="importmap">
@@ -73,7 +127,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-50 text-gray-900 dark:bg-slate-950 dark:text-gray-100 transition-colors duration-200 antialiased overflow-hidden">
+  <body class="text-gray-900 dark:text-gray-100 transition-colors duration-200 antialiased overflow-hidden">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

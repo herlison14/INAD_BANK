@@ -78,7 +78,8 @@ const CartoesAtrasoView: React.FC<CartoesAtrasoViewProps> = ({ contracts, isDark
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={9} fontBold="900" stroke={isDarkMode ? '#94a3b8' : '#64748b'} />
+                {/* Fixed: Removed non-existent fontBold property from XAxis to resolve TypeScript error */}
+                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={9} stroke={isDarkMode ? '#94a3b8' : '#64748b'} />
                 <Tooltip 
                   cursor={{fill: isDarkMode ? '#1e293b' : '#f8fafc'}}
                   contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}

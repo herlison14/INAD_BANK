@@ -23,6 +23,15 @@ const DetalhamentoView: React.FC<DetalhamentoViewProps> = ({ contracts, initialS
       ).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [automationLogs, initialSearchTerm]);
 
+  if (contracts.length === 0) {
+    return (
+      <div className="bg-white dark:bg-slate-800 p-24 rounded-[3.5rem] text-center border border-slate-100 dark:border-slate-800 shadow-sm animate-fade-in">
+        <FeatherIcon name="list" className="w-16 h-16 text-slate-200 dark:text-slate-700 mx-auto mb-6" />
+        <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest italic">Aguardando dados de contratos</h3>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
