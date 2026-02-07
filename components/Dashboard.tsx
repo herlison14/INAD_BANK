@@ -54,52 +54,52 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
   if (isEmpty) {
     return (
       <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col items-center justify-center min-h-[70vh] text-center p-6"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center justify-center min-h-[75vh] text-center p-6"
       >
-        <div className="bg-slate-900 p-16 rounded-[4rem] shadow-3xl border border-white/5 max-w-3xl relative overflow-hidden group">
-          {/* Background FX */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent pointer-events-none"></div>
-          <div className="absolute -bottom-20 -right-20 p-8 opacity-5 group-hover:scale-110 transition-transform duration-[4s]">
-            <FeatherIcon name="cpu" className="w-96 h-96 text-white" />
+        <div className="bg-[#020617] p-16 rounded-[5rem] shadow-4xl border border-white/5 max-w-4xl relative overflow-hidden group">
+          {/* Fundo Decorativo */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
+          <div className="absolute -bottom-32 -right-32 p-8 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-all duration-[5s]">
+            <FeatherIcon name="cpu" className="w-[30rem] h-[30rem] text-white" />
           </div>
           
           <div className="relative z-10">
-            <div className="bg-indigo-600/20 p-6 rounded-3xl w-fit mx-auto mb-10 border border-indigo-500/30">
-              <FeatherIcon name="zap" className="w-14 h-14 text-indigo-400 animate-pulse" />
+            <div className="bg-blue-600/20 p-8 rounded-[2.5rem] w-fit mx-auto mb-12 border border-blue-500/20 shadow-2xl">
+              <FeatherIcon name="zap" className="w-16 h-16 text-blue-400 animate-pulse" />
             </div>
             
-            <h2 className="text-6xl font-black text-white uppercase tracking-tighter italic leading-none mb-6">
-              SISTEMA EM <span className="text-indigo-500 underline decoration-indigo-500/30">ESPERA</span>
+            <h2 className="text-7xl font-black text-white uppercase tracking-tighter italic leading-[0.9] mb-8">
+              PROTOCOLOS EM <br/> <span className="text-blue-500">STANDBY</span>
             </h2>
             
-            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.5em] mb-12 leading-relaxed max-w-md mx-auto opacity-70">
-              Protocolo de Dashboard Zero Ativo. Nenhum dado de carteira foi injetado para visualização auditada no momento.
+            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.5em] mb-16 leading-relaxed max-w-lg mx-auto opacity-60">
+              Nenhuma carga de ativos foi detectada no diretório auditado. O sistema aguarda injeção de base estratégica (Col A-AB) ou fluxo de cartões (Col A-N).
             </p>
             
             <button 
               onClick={onGoToImport}
-              className="group bg-indigo-600 hover:bg-indigo-700 text-white px-14 py-7 rounded-[2.5rem] font-black uppercase text-[11px] tracking-[0.4em] shadow-2xl shadow-indigo-600/30 transition-all flex items-center gap-4 mx-auto"
+              className="group bg-blue-600 hover:bg-blue-700 text-white px-20 py-8 rounded-[3rem] font-black uppercase text-[13px] tracking-[0.4em] shadow-3xl shadow-blue-600/40 transition-all flex items-center gap-6 mx-auto active:scale-95"
             >
               Iniciar Protocolo de Injeção
-              <FeatherIcon name="send" className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              <FeatherIcon name="upload" className="w-5 h-5 transition-transform group-hover:-translate-y-1" />
             </button>
           </div>
         </div>
         
-        <div className="mt-12 flex gap-10 opacity-30">
-            <div className="flex flex-col items-center">
-                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-2">Segurança</span>
-                <FeatherIcon name="shield" className="w-5 h-5 text-slate-500" />
+        <div className="mt-16 flex gap-12 opacity-30">
+            <div className="flex flex-col items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Segurança</span>
+                <FeatherIcon name="shield" className="w-6 h-6 text-slate-500" />
             </div>
-            <div className="flex flex-col items-center">
-                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-2">Auditado</span>
-                <FeatherIcon name="check-circle" className="w-5 h-5 text-slate-500" />
+            <div className="flex flex-col items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Auditado</span>
+                <FeatherIcon name="check-circle" className="w-6 h-6 text-slate-500" />
             </div>
-            <div className="flex flex-col items-center">
-                <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest mb-2">RLS Ativo</span>
-                <FeatherIcon name="lock" className="w-5 h-5 text-slate-500" />
+            <div className="flex flex-col items-center gap-2">
+                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Sincro</span>
+                <FeatherIcon name="refresh-cw" className="w-6 h-6 text-slate-500" />
             </div>
         </div>
       </motion.div>
@@ -107,7 +107,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
   }
 
   return (
-    <div className="space-y-10 animate-fade-in">
+    <div className="space-y-12 animate-fade-in pb-20">
       <SmartQueryBar />
       <PredictiveAIAlerts contracts={contracts} onNavigateToDetails={onNavigateToDetails} />
 
@@ -119,9 +119,9 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="premium-card p-10 rounded-[3.5rem] shadow-xl">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-10">Performance de Recuperação</h3>
-          <div className="h-80">
+        <div className="premium-card p-12 rounded-[4rem] shadow-2xl">
+          <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-12">Performance de Recuperação</h3>
+          <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={[
                 { month: 'Set', real: 420000 }, { month: 'Out', real: 380000 }, { month: 'Nov', real: 510000 }, { month: 'Dez', real: 640000 }
@@ -133,8 +133,8 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="month" stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val/1000}k`} />
+                <XAxis dataKey="month" stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val/1000}k`} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)' }}
                   itemStyle={{ fontWeight: 'bold' }}
@@ -145,21 +145,21 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
           </div>
         </div>
 
-        <div className="premium-card p-10 rounded-[3.5rem] shadow-xl">
-          <h3 className="text-xl font-black text-slate-800 dark:text-white mb-10 uppercase tracking-tighter italic">Ageing Financeiro</h3>
-          <div className="h-80">
+        <div className="premium-card p-12 rounded-[4rem] shadow-2xl">
+          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-12 uppercase tracking-tighter italic">Ageing Financeiro</h3>
+          <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={ageingData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="name" stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '24px' }}
                   formatter={(val: number) => [formatCurrency(val), 'Saldo']}
                 />
-                <Bar dataKey="value" fill="#4f46e5" radius={[12, 12, 0, 0]} barSize={40}>
+                <Bar dataKey="value" fill="#4f46e5" radius={[16, 16, 0, 0]} barSize={50}>
                     {ageingData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fillOpacity={1 - index * 0.15} />
+                        <Cell key={`cell-${index}`} fillOpacity={1 - index * 0.12} />
                     ))}
                 </Bar>
               </BarChart>
