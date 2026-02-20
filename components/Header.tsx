@@ -27,10 +27,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, darkMode, toggleDarkMode, 
         
         <div className="hidden sm:flex items-center mr-4">
           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 dark:shadow-none mr-3">
-            <span className="text-white font-black text-xl italic">C</span>
+            <span className="text-white font-black text-xl italic">P</span>
           </div>
           <h1 className="text-xl font-extrabold tracking-tighter text-slate-800 dark:text-white italic leading-none">
-            CONV-BASE <span className="text-indigo-600">PRO</span>
+            PAINEL <span className="text-indigo-600">INAD 1.0</span>
           </h1>
         </div>
 

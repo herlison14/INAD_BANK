@@ -20,7 +20,9 @@ export enum UserRole {
 export interface Contract {
   id: string;
   clientName: string;
+  socio: string;      
   cpfCnpj: string;
+  phone?: string;
   product: string;
   saldoDevedor: number;
   valorProvisionado: number;
@@ -29,9 +31,11 @@ export interface Contract {
   status: ContractStatus;
   pa: string;
   gerente: string;
-  managerId: string; // ID do gestor para filtragem de segurança
+  managerEmail: string; // Adicionado para RLS
+  managerId: string;
   region: string;
   originSheet?: 'Geral' | 'Cartoes';
+  timestamp: string; // Data da carga
 }
 
 export interface User {
@@ -39,45 +43,51 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  pa?: string; // Unidade de Negócio vinculada
-  password?: string; // Simulação de hash local
+  pa?: string;
+  password?: string;
   lastLogin?: string;
-  isAutoRegistered?: boolean; // Marca se foi criado via importação
+  isAutoRegistered?: boolean;
 }
 
-export interface TaskReminder {
-  type: 'email' | 'app';
-  scheduledFor: string;
+export interface AuditLog {
+  id: string;
+  userEmail: string;
+  action: string;
+  details: string;
+  timestamp: string;
 }
 
 export interface Task {
   id: string;
-  contract: Contract;
-  manager: string;
+  contractId: string;
+  contractClient: string;
+  managerEmail: string;
   description: string;
   status: TaskStatus;
+  priority: 1 | 2; // 1: Crítico, 2: Alerta
   creationDate: string;
-  reminder?: TaskReminder;
   aiScore?: number;
 }
 
 export interface AppNotification {
   id: string;
-  contract: Contract;
+  managerEmail: string;
+  type: 'URGENTE' | 'META' | 'SISTEMA';
   message: string;
   timestamp: string;
   read: boolean;
 }
 
+// Added missing automation types and enums
 export enum TriggerType {
   ON_IMPORT = "Ao Importar",
-  ON_TASK_UPDATE = "Ao Atualizar Tarefa",
+  ON_DAYS_OVERDUE = "Por Dias de Atraso",
 }
 
 export enum ActionType {
+  CREATE_NOTIFICATION = "Criar Notificação",
   CREATE_TASK = "Criar Tarefa",
-  CREATE_NOTIFICATION = "Notificar Usuário",
-  LOG_ONLY = "Registrar Log",
+  SEND_EMAIL = "Enviar E-mail",
 }
 
 export interface AutomationAction {
@@ -103,10 +113,11 @@ export interface AutomationRule {
 
 export interface AutomationLog {
   id: string;
+  timestamp: string;
+  ruleId: string;
   ruleName: string;
   contractId: string;
   contractClient: string;
   actionType: ActionType;
   description: string;
-  timestamp: string;
 }

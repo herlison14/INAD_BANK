@@ -25,7 +25,10 @@ const PredictiveAIAlerts: React.FC<PredictiveAIAlertsProps> = ({ contracts, onNa
   const [error, setError] = useState<string | null>(null);
 
   const analyzeWithGemini = async () => {
-    if (contracts.length === 0) return;
+    if (contracts.length === 0) {
+      setInsights([]);
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -105,7 +108,7 @@ const PredictiveAIAlerts: React.FC<PredictiveAIAlertsProps> = ({ contracts, onNa
           </div>
           <button 
             onClick={analyzeWithGemini}
-            disabled={loading}
+            disabled={loading || contracts.length === 0}
             className="flex items-center gap-3 px-8 py-3.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-2xl border border-blue-500/30 transition-all text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
           >
             <FeatherIcon name="refresh-cw" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -158,8 +161,8 @@ const PredictiveAIAlerts: React.FC<PredictiveAIAlertsProps> = ({ contracts, onNa
                 </motion.div>
               ))
             ) : (
-              <div className="col-span-full py-12 text-center text-slate-500 font-bold uppercase text-xs tracking-widest">
-                Aguardando análise de volume...
+              <div className="col-span-full py-12 text-center text-slate-500 font-bold uppercase text-xs tracking-widest border border-dashed border-white/5 rounded-[2.5rem]">
+                Nenhum dado preditivo disponível.
               </div>
             )}
           </AnimatePresence>

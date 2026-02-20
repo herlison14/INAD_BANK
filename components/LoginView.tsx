@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-// Added missing motion import for animations
 import { motion } from 'framer-motion';
 import { User, UserRole } from '../types';
 import FeatherIcon from './FeatherIcon';
@@ -11,7 +10,7 @@ interface LoginViewProps {
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
-  const { users } = useApp();
+  const { users, addAuditLog } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,23 +22,36 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     setError('');
     setLoading(true);
     
-    // Motor de Autenticação Corporativa (Mecanismo de Auditoria)
     setTimeout(() => {
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedInput = email.toLowerCase().trim();
       
-      // Busca usuário por email ou pelo Nome (facilitando login de novos gerentes)
+      // Validação Especial para Administrador Master
+      if (normalizedInput === 'admin@admin' && password === '123') {
+        const adminUser = users.find(u => u.email === 'admin@admin') || {
+          id: 'admin-master',
+          name: 'ADMINISTRADOR MASTER',
+          email: 'admin@admin',
+          role: UserRole.Admin,
+          pa: 'GLOBAL'
+        };
+        addAuditLog(adminUser.email, 'LOGIN', 'Acesso MASTER autorizado via bypass centralizado.');
+        onLoginSuccess(adminUser);
+        return;
+      }
+
+      // Validação para demais usuários (Gerentes importados)
       const user = users.find(u => 
-        u.email.toLowerCase() === normalizedEmail || 
-        u.name.toLowerCase() === normalizedEmail
+        u.email.toLowerCase() === normalizedInput || 
+        u.name.toLowerCase() === normalizedInput.toUpperCase()
       );
 
-      // Verificação de senha de protocolo ou personalizada
       const isCorrectPassword = (password === '123') || (user?.password && password === user.password);
 
       if (user && isCorrectPassword) {
+        addAuditLog(user.email, 'LOGIN', `Acesso autorizado ao ambiente auditado via cargo ${user.role}.`);
         onLoginSuccess(user);
       } else {
-        setError('Acesso Negado. Identidade não encontrada no diretório auditado.');
+        setError('Acesso Negado. Identidade ou Token inválidos no diretório.');
         setLoading(false);
       }
     }, 1200);
@@ -47,7 +59,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden font-sans">
-      {/* Background VFX */}
       <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-900 rounded-full blur-[150px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-950 rounded-full blur-[120px]"></div>
@@ -58,13 +69,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           <div className="inline-flex p-6 bg-blue-600 rounded-[2.5rem] mb-8 shadow-2xl shadow-blue-500/40 ring-8 ring-blue-500/10">
             <FeatherIcon name="shield" className="text-white w-10 h-10" />
           </div>
-          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none">BI RECOVERY</h1>
+          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none">PAINEL INAD 1.0</h1>
           <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.4em] mt-4 opacity-80">Ambiente Auditado Sicoob</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-8">
           <div className="space-y-4">
-            <label className="text-[11px] font-black uppercase text-slate-400 ml-2 tracking-[0.2em]">Identidade (E-mail ou Nome)</label>
+            <label className="text-[11px] font-black uppercase text-slate-400 ml-2 tracking-[0.2em]">Identidade (admin@admin)</label>
             <div className="relative group">
               <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
                 <FeatherIcon name="user" className="w-5 h-5" />
@@ -73,7 +84,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 type="text" 
                 required
                 className="w-full h-18 pl-16 bg-white/5 border-2 border-white/5 rounded-3xl text-white focus:border-blue-500 transition-all outline-none font-bold text-lg"
-                placeholder="nome.gerente"
+                placeholder="Ex: admin@admin"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -81,7 +92,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           </div>
 
           <div className="space-y-4">
-            <label className="text-[11px] font-black uppercase text-slate-400 ml-2 tracking-[0.2em]">Token de Acesso</label>
+            <label className="text-[11px] font-black uppercase text-slate-400 ml-2 tracking-[0.2em]">Token de Acesso (123)</label>
             <div className="relative group">
               <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors">
                 <FeatherIcon name="lock" className="w-5 h-5" />
@@ -118,7 +129,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                Entrar no BI
+                Entrar no Painel
                 <FeatherIcon name="zap" className="w-5 h-5" />
               </>
             )}
@@ -135,8 +146,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             </div>
             <div className="space-y-1">
               <p className="text-blue-400 mb-2 font-black italic">GERENTE PLANILHA</p>
-              <p>User: [Nome na Col B]</p>
-              <p>Pass: mudar123</p>
+              <p>User: [Nome Col B]</p>
+              <p>Pass: 123</p>
             </div>
           </div>
         </div>

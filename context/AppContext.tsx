@@ -1,159 +1,144 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Contract, AppNotification, Task, TaskStatus, User, UserRole } from '../types';
-
-interface ImportSummary {
-  updated: number;
-  inserted: number;
-}
+import { Contract, AppNotification, Task, TaskStatus, User, UserRole, AuditLog } from '../types';
 
 interface AppContextType {
   allContracts: Contract[];
   notifications: AppNotification[];
+  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   tasks: Task[];
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   users: User[];
+  auditLogs: AuditLog[];
   importHashes: string[];
   syncStatus: 'online' | 'syncing' | 'offline';
-  lastSync: string;
-  setAllContracts: React.Dispatch<React.SetStateAction<Contract[]>>;
-  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  lastGeralUpdate: string | null;
+  lastCartoesUpdate: string | null;
+  lastUpdateTimestamp: string | null;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-  triggerManualSync: () => void;
-  markNotificationRead: (id: string) => void;
+  addAuditLog: (userEmail: string, action: string, details: string) => void;
+  upsertDatabase: (newContracts: Contract[], fileSignature: string, origin?: 'Geral' | 'Cartoes') => { success: boolean };
+  clearDatabase: () => void;
   updateTaskStatus: (id: string, status: TaskStatus) => void;
-  upsertDatabase: (newContracts: Contract[], fileSignature: string) => { success: boolean, summary?: ImportSummary };
-  syncManagersFromData: (managers: { name: string, pa: string }[]) => void;
+  triggerManualSync: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const DB_KEY = 'sicoob_db_recovery_v6';
+const APP_INITIALIZED_KEY = 'sicoob_app_initialized';
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Inicialização Rígida: Base V4 começa VAZIA
   const [allContracts, setAllContracts] = useState<Contract[]>(() => {
-    const saved = localStorage.getItem('sicoob_db_recovery_v4');
-    return saved ? JSON.parse(saved) : []; 
+    const saved = localStorage.getItem(DB_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        return [];
+      }
+    }
+    return []; 
   });
 
   const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('sicoob_db_users_v4');
-    const initialUsers = [
-      { id: 'admin-1', role: UserRole.Admin, name: 'ADMINISTRADOR MASTER', email: 'admin@admin', pa: 'GLOBAL', password: '123' }
-    ];
-    return saved ? JSON.parse(saved) : initialUsers;
+    const saved = localStorage.getItem('sicoob_db_users_v6');
+    const defaultAdmin: User = { 
+      id: 'admin-master', 
+      role: UserRole.Admin, 
+      name: 'ADMINISTRADOR MASTER', 
+      email: 'admin@admin', 
+      pa: 'GLOBAL', 
+      password: '123' 
+    };
+    if (!saved) return [defaultAdmin];
+    return JSON.parse(saved);
   });
 
-  const [importHashes, setImportHashes] = useState<string[]>(() => {
-    const saved = localStorage.getItem('sicoob_db_audit_hashes_v4');
-    return saved ? JSON.parse(saved) : [];
-  });
-
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [importHashes, setImportHashes] = useState<string[]>([]);
+  const [lastGeralUpdate, setLastGeralUpdate] = useState<string | null>(null);
+  const [lastCartoesUpdate, setLastCartoesUpdate] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online');
-  const [lastSync, setLastSync] = useState(new Date().toLocaleTimeString());
+
+  const lastUpdateTimestamp = useMemo(() => {
+    if (allContracts.length === 0) return null;
+    return lastGeralUpdate || lastCartoesUpdate;
+  }, [lastGeralUpdate, lastCartoesUpdate, allContracts.length]);
 
   useEffect(() => {
-    localStorage.setItem('sicoob_db_recovery_v4', JSON.stringify(allContracts));
+    localStorage.setItem(DB_KEY, JSON.stringify(allContracts));
   }, [allContracts]);
 
-  useEffect(() => {
-    localStorage.setItem('sicoob_db_users_v4', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
-    localStorage.setItem('sicoob_db_audit_hashes_v4', JSON.stringify(importHashes));
-  }, [importHashes]);
-
-  const upsertDatabase = useCallback((newContracts: Contract[], fileSignature: string) => {
-    if (importHashes.includes(fileSignature)) return { success: false };
-
-    setSyncStatus('syncing');
-    let updatedCount = 0;
-    let insertedCount = 0;
-
-    const contractsMap = new Map<string, Contract>(allContracts.map(c => [c.id, c]));
-
-    newContracts.forEach(newC => {
-      if (contractsMap.has(newC.id)) {
-        const existing = contractsMap.get(newC.id);
-        if (existing) {
-          contractsMap.set(newC.id, {
-            ...existing,
-            ...newC
-          });
-          updatedCount++;
-        }
-      } else {
-        contractsMap.set(newC.id, newC);
-        insertedCount++;
-      }
-    });
-
-    const result = Array.from(contractsMap.values());
-
-    setTimeout(() => {
-      setAllContracts(result);
-      setImportHashes(prev => [...prev, fileSignature]);
-      setSyncStatus('online');
-      setLastSync(new Date().toLocaleTimeString());
-    }, 800);
-
-    return { success: true, summary: { updated: updatedCount, inserted: insertedCount } };
-  }, [allContracts, importHashes]);
-
-  const syncManagersFromData = useCallback((managers: { name: string, pa: string }[]) => {
-    setUsers(prevUsers => {
-      const updatedUsers = [...prevUsers];
-      let hasChanges = false;
-      managers.forEach(mgr => {
-        const normalizedName = mgr.name.trim().toUpperCase();
-        if (!normalizedName || normalizedName === 'GERENTE NÃO ATRIBUÍDO') return;
-        const exists = updatedUsers.find(u => u.name.toUpperCase() === normalizedName);
-        if (!exists) {
-          updatedUsers.push({
-            id: `mgr-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-            name: normalizedName,
-            email: `${normalizedName.toLowerCase().replace(/\s+/g, '.')}@sicoob.com.br`,
-            role: UserRole.Gerente,
-            pa: mgr.pa.trim().toUpperCase(),
-            password: 'mudar123',
-            isAutoRegistered: true
-          });
-          hasChanges = true;
-        }
-      });
-      return hasChanges ? updatedUsers : prevUsers;
-    });
+  const addAuditLog = useCallback((userEmail: string, action: string, details: string) => {
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      userEmail,
+      action,
+      details,
+      timestamp: new Date().toLocaleString('pt-BR')
+    };
+    setAuditLogs(prev => [newLog, ...prev].slice(0, 500)); 
   }, []);
 
   const triggerManualSync = useCallback(() => {
+    addAuditLog('SISTEMA', 'SYNC MANUAL', 'Sincronização forçada pelo usuário.');
     setSyncStatus('syncing');
-    setTimeout(() => {
-      setSyncStatus('online');
-      setLastSync(new Date().toLocaleTimeString());
-    }, 1000);
-  }, []);
+    setTimeout(() => setSyncStatus('online'), 1000);
+  }, [addAuditLog]);
 
-  const markNotificationRead = useCallback((id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  }, []);
+  const clearDatabase = useCallback(() => {
+    setAllContracts([]);
+    setTasks([]);
+    setNotifications([]);
+    setImportHashes([]);
+    setLastGeralUpdate(null);
+    setLastCartoesUpdate(null);
+    localStorage.removeItem(DB_KEY);
+    localStorage.setItem(APP_INITIALIZED_KEY, 'true');
+    addAuditLog('SISTEMA', 'HARD RESET', 'Protocolo de limpeza total executado. Dashboard zerado.');
+  }, [addAuditLog]);
+
+  const upsertDatabase = useCallback((newContracts: Contract[], fileSignature: string, origin: 'Geral' | 'Cartoes' = 'Geral') => {
+    setSyncStatus('syncing');
+    const now = new Date().toLocaleString('pt-BR');
+    const isoNow = new Date().toISOString();
+
+    setAllContracts(prev => {
+      // Mantém contratos da outra planilha e substitui apenas os da planilha atual
+      const otherContracts = prev.filter(c => c.originSheet !== origin);
+      return [...otherContracts, ...newContracts];
+    });
+
+    setImportHashes(prev => [...prev, fileSignature]);
+    setSyncStatus('online');
+
+    if (origin === 'Cartoes') setLastCartoesUpdate(now);
+    else setLastGeralUpdate(now);
+
+    addAuditLog('SISTEMA', 'IMPORTAÇÃO', `Carga de ${newContracts.length} registros via canal ${origin} concluída.`);
+    
+    return { success: true };
+  }, [addAuditLog]);
 
   const updateTaskStatus = useCallback((id: string, status: TaskStatus) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
   }, []);
 
   const value = useMemo(() => ({
-    allContracts, notifications, tasks, users, importHashes, syncStatus, lastSync,
-    setAllContracts, setNotifications, setTasks, setUsers, triggerManualSync,
-    markNotificationRead, updateTaskStatus, upsertDatabase, syncManagersFromData
-  }), [allContracts, notifications, tasks, users, importHashes, syncStatus, lastSync, triggerManualSync, markNotificationRead, updateTaskStatus, upsertDatabase, syncManagersFromData]);
+    allContracts, notifications, setNotifications, tasks, setTasks, users, auditLogs, importHashes, syncStatus, 
+    lastGeralUpdate, lastCartoesUpdate, lastUpdateTimestamp, setUsers, addAuditLog, 
+    upsertDatabase, clearDatabase, updateTaskStatus, triggerManualSync
+  }), [allContracts, notifications, tasks, users, auditLogs, importHashes, syncStatus, lastGeralUpdate, lastCartoesUpdate, lastUpdateTimestamp, upsertDatabase, clearDatabase, updateTaskStatus, addAuditLog, triggerManualSync]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (context === undefined) throw new Error('useApp must be used within an AppProvider');
+  if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
 };

@@ -27,7 +27,8 @@ const DetalhamentoView: React.FC<DetalhamentoViewProps> = ({ contracts, initialS
     return (
       <div className="bg-white dark:bg-slate-800 p-24 rounded-[3.5rem] text-center border border-slate-100 dark:border-slate-800 shadow-sm animate-fade-in">
         <FeatherIcon name="list" className="w-16 h-16 text-slate-200 dark:text-slate-700 mx-auto mb-6" />
-        <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest italic">Aguardando dados de contratos</h3>
+        <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest italic">Aguardando Carga Master</h3>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-4">Os dados injetados na aba Importação aparecerão aqui automaticamente.</p>
       </div>
     );
   }
@@ -35,10 +36,10 @@ const DetalhamentoView: React.FC<DetalhamentoViewProps> = ({ contracts, initialS
   return (
     <div className="space-y-6">
        <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
-        <h2 className="text-2xl font-black text-gray-800 dark:text-white mb-1 uppercase tracking-tighter italic">Detalhamento dos Contratos</h2>
+        <h2 className="text-2xl font-black text-gray-800 dark:text-white mb-1 uppercase tracking-tighter italic">Espelho de Carteira (Detalhamento)</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
             <FeatherIcon name="info" className="h-4 w-4 text-blue-500" />
-            Seu nível de acesso é: <span className="text-blue-600">{userRole}</span>. Dados sensíveis podem estar mascarados conforme LGPD.
+            Visualização Auditada: <span className="text-blue-600 font-black">{userRole}</span> • Filtro RLS Ativo.
         </p>
         <ContractsTable 
             contracts={contracts} 

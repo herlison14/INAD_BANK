@@ -1,8 +1,8 @@
 
 import React, { useMemo } from 'react';
 import { Contract } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import FeatherIcon from './FeatherIcon';
+import { formatCurrency } from '../utils/formatter';
 
 interface CartoesAtrasoViewProps {
   contracts: Contract[];
@@ -10,142 +10,116 @@ interface CartoesAtrasoViewProps {
   onNavigateToDetails: (id: string) => void;
 }
 
-const CartoesAtrasoView: React.FC<CartoesAtrasoViewProps> = ({ contracts, isDarkMode, onNavigateToDetails }) => {
-  // Filtra o que já veio filtrado globalmente (PA/Gerente) para mostrar apenas Cartões
+const CartoesAtrasoView: React.FC<CartoesAtrasoViewProps> = ({ contracts, onNavigateToDetails }) => {
+  // Filtra estritamente contratos que vieram da planilha de Cartões (Coluna I)
   const cardContracts = useMemo(() => {
-    return contracts.filter(c => {
-      const normalizedSheet = c.originSheet?.toLowerCase().trim() || '';
-      const isFromCardSheet = normalizedSheet.includes('cartão') || 
-                              normalizedSheet.includes('cartao');
-      
-      const normalizedProduct = c.product.toLowerCase();
-      const isCardProduct = normalizedProduct.includes('cartão') || 
-                            normalizedProduct.includes('cartao');
-      
-      return isFromCardSheet || isCardProduct;
-    });
+    return contracts.filter(c => c.originSheet === 'Cartoes');
   }, [contracts]);
 
+  const isEmpty = cardContracts.length === 0;
+
   const stats = useMemo(() => {
-    const totalDebt = cardContracts.reduce((acc, c) => acc + c.saldoDevedor, 0);
+    if (isEmpty) return { totalDebt: 0, count: 0 };
+    const totalDebt = cardContracts.reduce((acc, c) => acc + (c.saldoDevedor || 0), 0);
     const count = cardContracts.length;
     return { totalDebt, count };
-  }, [cardContracts]);
-
-  const chartData = useMemo(() => {
-    const ranges = {
-      '1-30d': 0,
-      '31-60d': 0,
-      '61-90d': 0,
-      '91-180d': 0,
-      '181d+': 0
-    };
-    cardContracts.forEach(c => {
-      if (c.daysOverdue <= 30) ranges['1-30d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 60) ranges['31-60d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 90) ranges['61-90d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 180) ranges['91-180d'] += c.saldoDevedor;
-      else ranges['181d+'] += c.saldoDevedor;
-    });
-    return Object.entries(ranges).map(([name, value]) => ({ name, value }));
-  }, [cardContracts]);
-
-  const formatBRL = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }, [cardContracts, isEmpty]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-red-600 to-red-800 p-8 rounded-3xl shadow-xl text-white relative overflow-hidden group">
-          <div className="absolute -top-10 -right-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
-            <FeatherIcon name="package" className="h-64 w-64" />
-          </div>
-          <div className="relative z-10">
-            <p className="text-red-100 text-[10px] font-black uppercase tracking-[0.2em] mb-2 opacity-80">Monitoramento Específico</p>
-            <h2 className="text-4xl font-black mb-6 tracking-tighter italic">{formatBRL(stats.totalDebt)}</h2>
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md w-fit px-4 py-2 rounded-2xl border border-white/20">
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              <span className="text-xs font-black uppercase tracking-tight">{stats.count} cartões filtrados</span>
+    <div className="space-y-8 animate-fade-in max-w-[1400px] mx-auto pb-20">
+      {/* Resumo Executivo Minimalista */}
+      <div className="bg-white dark:bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+        {isEmpty && (
+            <div className="absolute top-0 left-0 w-1 h-full bg-slate-200 dark:bg-slate-800"></div>
+        )}
+        <div className="flex items-center gap-6">
+            <div className={`p-5 rounded-3xl shadow-xl transition-all ${isEmpty ? 'bg-slate-100 dark:bg-slate-800 text-slate-300' : 'bg-red-600 text-white shadow-red-500/20'}`}>
+                <FeatherIcon name="package" className="w-8 h-8" />
             </div>
-          </div>
+            <div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Lista Operacional <span className="text-red-600">Cartões</span></h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mt-1">
+                    {isEmpty ? 'Aguardando Sincronização de Arquivo' : 'Sincronização Ativa • Fluxo de Cobrança v3.5'}
+                </p>
+            </div>
         </div>
-
-        <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700">
-          <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-2">
-            <div className="w-4 h-1 bg-red-500 rounded-full"></div>
-            Dívida por Ageing (Filtro Ativo)
-          </h3>
-          <div className="h-40 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                {/* Fixed: Removed non-existent fontBold property from XAxis to resolve TypeScript error */}
-                <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={9} stroke={isDarkMode ? '#94a3b8' : '#64748b'} />
-                <Tooltip 
-                  cursor={{fill: isDarkMode ? '#1e293b' : '#f8fafc'}}
-                  contentStyle={{ backgroundColor: isDarkMode ? '#0f172a' : '#fff', border: 'none', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}
-                  formatter={(val: number) => [formatBRL(val), 'Dívida']}
-                />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index > 2 ? '#ef4444' : '#fca5a5'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        
+        <div className="flex gap-10">
+            <div className="text-right">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Exposição do Fluxo</p>
+                <p className={`text-2xl font-black italic tabular-nums transition-colors ${isEmpty ? 'text-slate-300' : 'text-slate-900 dark:text-white'}`}>
+                    {formatCurrency(stats.totalDebt)}
+                </p>
+            </div>
+            <div className="w-px h-10 bg-slate-100 dark:bg-slate-800 self-center"></div>
+            <div className="text-right">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Itens em Carteira</p>
+                <p className={`text-2xl font-black italic tabular-nums transition-colors ${isEmpty ? 'text-slate-300' : 'text-red-600'}`}>
+                    {stats.count}
+                </p>
+            </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden">
-        <div className="p-8 border-b border-gray-50 dark:border-slate-700 flex justify-between items-center">
-            <h3 className="font-black text-gray-900 dark:text-white flex items-center gap-3 text-lg uppercase tracking-tighter italic">
-                <div className="w-2 h-8 bg-red-600 rounded-full"></div>
-                Detalhamento dos Cartões
-            </h3>
-            <span className="px-4 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full text-[10px] font-black uppercase">
-                {cardContracts.length} Registros
-            </span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-[10px] text-gray-400 uppercase tracking-[0.2em] bg-gray-50/50 dark:bg-slate-900/50 border-b border-gray-50 dark:border-slate-800">
-              <tr>
-                <th className="px-8 py-5 font-black">PA (Col A)</th>
-                <th className="px-8 py-5 font-black">Gerente (Col B)</th>
-                <th className="px-8 py-5 font-black">Sócio (Col C)</th>
-                <th className="px-8 py-5 font-black">CPF (Col D)</th>
-                <th className="px-8 py-5 font-black text-right">Dívida (Col I)</th>
-                <th className="px-8 py-5 font-black text-center">Dias (Col N)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-slate-800">
-              {cardContracts.map((c) => (
-                <tr key={c.id} className="hover:bg-red-50/20 dark:hover:bg-red-900/5 transition-all group cursor-pointer" onClick={() => onNavigateToDetails(c.id)}>
-                  <td className="px-8 py-5 font-bold text-gray-600 dark:text-gray-400 text-xs">{c.pa}</td>
-                  <td className="px-8 py-5 text-gray-500 dark:text-gray-500 text-xs font-medium">{c.gerente}</td>
-                  <td className="px-8 py-5 font-black text-gray-900 dark:text-white uppercase tracking-tight text-xs">{c.clientName}</td>
-                  <td className="px-8 py-5 font-mono text-[10px] text-gray-400">{c.cpfCnpj}</td>
-                  <td className="px-8 py-5 text-right font-black text-red-600 dark:text-red-400">{formatBRL(c.saldoDevedor)}</td>
-                  <td className="px-8 py-5 text-center">
-                    <span className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-tighter ${c.daysOverdue > 90 ? 'bg-red-600 text-white shadow-lg shadow-red-200 dark:shadow-none' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
-                        {c.daysOverdue} d
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {cardContracts.length === 0 && (
-                <tr>
-                    <td colSpan={6} className="px-8 py-24 text-center">
-                      <div className="bg-gray-50 dark:bg-slate-900/50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-dashed border-gray-200 dark:border-slate-800">
-                        <FeatherIcon name="package" className="h-8 w-8 text-gray-300 dark:text-gray-700" />
-                      </div>
-                      <p className="text-gray-400 dark:text-gray-600 italic font-bold uppercase text-[10px] tracking-widest">Nenhum cartão encontrado nos filtros atuais</p>
-                    </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Tabela de Alta Performance ou Estado de Espera */}
+      <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden transition-all min-h-[500px] flex flex-col">
+        {isEmpty ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-20 space-y-6">
+                <div className="relative">
+                    <FeatherIcon name="package" className="w-24 h-24 text-slate-100 dark:text-slate-800/50" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                         <div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded-full animate-ping"></div>
+                    </div>
+                </div>
+                <div className="text-center space-y-2">
+                    <h3 className="text-xl font-black text-slate-400 uppercase tracking-tighter italic">Nenhum Cartão Importado</h3>
+                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em] max-w-xs mx-auto">
+                        Injete a planilha de cartões na aba de importação para popular esta visão estratégica.
+                    </p>
+                </div>
+            </div>
+        ) : (
+            <>
+                <div className="p-10 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
+                    <h3 className="font-black text-slate-900 dark:text-white flex items-center gap-3 text-lg uppercase tracking-tighter italic">
+                        Detalhamento de Plásticos em Atraso (Coluna I)
+                    </h3>
+                    <div className="flex items-center gap-4">
+                        <span className="text-[9px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full">Base Atualizada</span>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-[10px] text-slate-400 uppercase tracking-[0.2em] bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-50 dark:border-slate-800">
+                      <tr>
+                        <th className="px-10 py-6 font-black">Unidade (PA)</th>
+                        <th className="px-10 py-6 font-black">Gestor</th>
+                        <th className="px-10 py-6 font-black">Sócio</th>
+                        <th className="px-10 py-6 font-black">Documento</th>
+                        <th className="px-10 py-6 text-right font-black">Dívida Atual</th>
+                        <th className="px-10 py-6 text-center font-black">Atraso</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                      {cardContracts.map((c) => (
+                        <tr key={c.id} className="hover:bg-red-50/20 dark:hover:bg-red-900/5 transition-all group cursor-pointer" onClick={() => onNavigateToDetails(c.id)}>
+                          <td className="px-10 py-6 font-bold text-slate-500 text-xs uppercase italic">{c.pa}</td>
+                          <td className="px-10 py-6 text-slate-400 text-[11px] font-semibold">{c.gerente}</td>
+                          <td className="px-10 py-6 font-black text-slate-900 dark:text-white uppercase tracking-tight text-xs italic">{c.clientName}</td>
+                          <td className="px-10 py-6 font-mono text-[10px] text-slate-400">{c.cpfCnpj}</td>
+                          <td className="px-10 py-6 text-right font-black text-red-600 tabular-nums">{formatCurrency(c.saldoDevedor)}</td>
+                          <td className="px-10 py-6 text-center">
+                            <span className={`px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-tighter ${c.daysOverdue > 90 ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                                {c.daysOverdue} d
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+            </>
+        )}
       </div>
     </div>
   );

@@ -1,192 +1,193 @@
 
 import React, { useState, useMemo } from 'react';
 import { Contract } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Cell, Line, ComposedChart, PieChart, Pie, Legend
+} from 'recharts';
 import FeatherIcon from './FeatherIcon';
+import { formatCurrency } from '../utils/formatter';
 
 interface VisaoDinamicaViewProps {
     contracts: Contract[];
     isDarkMode: boolean;
 }
 
-type GroupDimension = 'product' | 'pa' | 'gerente';
-type MetricType = 'saldoDevedor' | 'count' | 'valorProvisionado';
-
 const VisaoDinamicaView: React.FC<VisaoDinamicaViewProps> = ({ contracts, isDarkMode }) => {
-  const [dimension, setDimension] = useState<GroupDimension>('product');
-  const [metric, setMetric] = useState<MetricType>('saldoDevedor');
+  const [activeMetric, setActiveMetric] = useState<'saldo' | 'volumetria'>('saldo');
 
-  const dimensionLabels: Record<GroupDimension, string> = {
-    product: 'Produto',
-    pa: 'Posto de Atendimento (PA)',
-    gerente: 'Gerente'
-  };
+  const isEmpty = contracts.length === 0;
 
-  const metricLabels: Record<MetricType, string> = {
-    saldoDevedor: 'Saldo Devedor',
-    count: 'Nº de Contratos',
-    valorProvisionado: 'Valor Provisionado'
-  };
+  // Cálculos de Aging Ranges para o Donut (Market Share do Atraso)
+  const agingData = useMemo(() => {
+    if (isEmpty) return [];
+    const slices = {
+      '0-15 Dias': 0,
+      '16-30 Dias': 0,
+      '31-60 Dias': 0,
+      '61-90 Dias': 0,
+      '90+ Dias': 0
+    };
 
-  const aggregatedData = useMemo(() => {
-    const grouped = contracts.reduce((acc: Record<string, any>, contract) => {
-      const key = contract[dimension] || 'Não Informado';
-      if (!acc[key]) {
-        acc[key] = { name: key, saldoDevedor: 0, count: 0, valorProvisionado: 0 };
-      }
-      acc[key].saldoDevedor += contract.saldoDevedor;
-      acc[key].count += 1;
-      acc[key].valorProvisionado += contract.valorProvisionado;
+    contracts.forEach(c => {
+      if (c.daysOverdue <= 15) slices['0-15 Dias'] += c.saldoDevedor;
+      else if (c.daysOverdue <= 30) slices['16-30 Dias'] += c.saldoDevedor;
+      else if (c.daysOverdue <= 60) slices['31-60 Dias'] += c.saldoDevedor;
+      else if (c.daysOverdue <= 90) slices['61-90 Dias'] += c.saldoDevedor;
+      else slices['90+ Dias'] += c.saldoDevedor;
+    });
+
+    return Object.entries(slices).map(([name, value]) => ({ name, value }));
+  }, [contracts, isEmpty]);
+
+  // Comparativo Gerentes (Volumetria vs Valor)
+  const managerComparison = useMemo(() => {
+    if (isEmpty) return [];
+    const grouped = contracts.reduce((acc: Record<string, any>, c) => {
+      if (!acc[c.gerente]) acc[c.gerente] = { name: c.gerente, saldo: 0, count: 0 };
+      acc[c.gerente].saldo += c.saldoDevedor;
+      acc[c.gerente].count += 1;
       return acc;
     }, {});
 
-    // Ordenar e limitar aos top 15 para manter a limpeza visual se houver muitos dados
-    return Object.values(grouped)
-      .sort((a: any, b: any) => b[metric] - a[metric])
-      .slice(0, 15); 
-  }, [contracts, dimension, metric]);
-
-  const formatValue = (value: number) => {
-    if (metric === 'count') return value.toLocaleString('pt-BR');
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  };
+    return Object.values(grouped).sort((a: any, b: any) => b.saldo - a.saldo).slice(0, 8);
+  }, [contracts, isEmpty]);
 
   const axisColor = isDarkMode ? '#94a3b8' : '#64748b';
-  const tooltipBg = isDarkMode ? '#0f172a' : '#ffffff';
-  const tooltipBorder = isDarkMode ? '#334155' : '#e2e8f0';
-  const tooltipText = isDarkMode ? '#f1f5f9' : '#1e293b';
-
-  // Cores dinâmicas para as barras
-  const barColor = metric === 'saldoDevedor' ? '#3b82f6' : metric === 'count' ? '#8b5cf6' : '#f59e0b';
+  const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 transition-colors">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-10">
+    <div className="space-y-10 animate-fade-in pb-20">
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        
+        {/* GRÁFICO A: COMPARATIVO DE VOLUMETRIA E VALOR */}
+        <div className="premium-card p-10 rounded-[4rem] shadow-2xl relative overflow-hidden">
+          <div className="flex justify-between items-center mb-10">
             <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <FeatherIcon name="pie-chart" className="text-blue-500 h-6 w-6" />
-                    Análise Dinâmica de Carteira
-                </h2>
-                <p className="text-gray-500 dark:text-gray-400 mt-1">Comparativo de performance por categorias e métricas.</p>
+               <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Performance por Gerente</h3>
+               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cruzamento de Saldo vs Quantidade</p>
             </div>
-            
-            <div className="flex flex-wrap gap-4">
-                <div className="flex flex-col min-w-[140px]">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Dimensão</span>
-                    <div className="inline-flex bg-gray-100 dark:bg-slate-900/50 p-1 rounded-lg">
-                        {(['product', 'pa', 'gerente'] as GroupDimension[]).map((dim) => (
-                            <button
-                                key={dim}
-                                onClick={() => setDimension(dim)}
-                                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${dimension === dim ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                            >
-                                {dim === 'product' ? 'Produtos' : dim === 'pa' ? 'PAs' : 'Gerentes'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+               <button 
+                onClick={() => setActiveMetric('saldo')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${activeMetric === 'saldo' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}
+               >
+                 Valor
+               </button>
+               <button 
+                onClick={() => setActiveMetric('volumetria')}
+                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${activeMetric === 'volumetria' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500'}`}
+               >
+                 Volume
+               </button>
+            </div>
+          </div>
 
-                <div className="flex flex-col min-w-[140px]">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Métrica de Valor</span>
-                    <div className="inline-flex bg-gray-100 dark:bg-slate-900/50 p-1 rounded-lg">
-                        {(['saldoDevedor', 'count', 'valorProvisionado'] as MetricType[]).map((met) => (
-                            <button
-                                key={met}
-                                onClick={() => setMetric(met)}
-                                className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${metric === met ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-300 shadow-sm' : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                            >
-                                {met === 'saldoDevedor' ? 'Saldo' : met === 'count' ? 'Qtd' : 'Provisão'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={managerComparison}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <XAxis dataKey="name" stroke={axisColor} fontSize={9} axisLine={false} tickLine={false} />
+                <YAxis stroke={axisColor} fontSize={10} axisLine={false} tickLine={false} tickFormatter={(v) => activeMetric === 'saldo' ? `R$${(v/1000).toFixed(0)}k` : v} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }}
+                  formatter={(v: number) => activeMetric === 'saldo' ? formatCurrency(v) : `${v} Contratos`}
+                />
+                <Bar dataKey={activeMetric === 'saldo' ? 'saldo' : 'count'} radius={[10, 10, 0, 0]}>
+                  {managerComparison.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="h-[500px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={aggregatedData} 
-              layout="vertical" 
-              margin={{ top: 5, right: 60, left: 20, bottom: 5 }}
-              barSize={24}
-            >
-              <CartesianGrid strokeDasharray="3 3" strokeOpacity={isDarkMode ? 0.05 : 0.2} horizontal={false} />
-              <XAxis 
-                type="number"
-                stroke={axisColor} 
-                fontSize={10}
-                tickFormatter={(value) => metric === 'count' ? value : new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(value)} 
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis 
-                type="category"
-                dataKey="name" 
-                stroke={axisColor} 
-                fontSize={11} 
-                width={150}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip 
-                cursor={{fill: isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'}} 
-                contentStyle={{ 
-                    backgroundColor: tooltipBg, 
-                    border: `1px solid ${tooltipBorder}`, 
-                    borderRadius: '12px', 
-                    color: tooltipText,
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                }} 
-                formatter={(value: number) => [formatValue(value), metricLabels[metric]]}
-              />
-              <Bar 
-                dataKey={metric} 
-                fill={barColor} 
-                radius={[0, 100, 100, 0]} 
-                animationDuration={1500}
-              >
-                {aggregatedData.map((entry, index) => (
-                    <Cell 
-                        key={`cell-${index}`} 
-                        fillOpacity={1 - (index * 0.04)} 
-                        className="hover:opacity-80 transition-opacity cursor-pointer" 
-                    />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        {/* GRÁFICO B: MARKET SHARE DO ATRASO (DONUT) */}
+        <div className="premium-card p-10 rounded-[4rem] shadow-2xl">
+          <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-8">Market Share do Atraso</h3>
+          <div className="h-[300px] mb-8">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={agingData} 
+                  cx="50%" cy="50%" 
+                  innerRadius={80} outerRadius={120} 
+                  paddingAngle={8} 
+                  dataKey="value"
+                >
+                  {agingData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="none" />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             {agingData.map((item, idx) => (
+                <div key={item.name} className="flex justify-between items-center bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
+                   <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{backgroundColor: colors[idx % colors.length]}} />
+                      <span className="text-[9px] font-black uppercase text-slate-500">{item.name}</span>
+                   </div>
+                   <span className="text-[11px] font-black text-slate-900 dark:text-white tabular-nums">{formatCurrency(item.value)}</span>
+                </div>
+             ))}
+          </div>
         </div>
-        <p className="text-[10px] text-gray-400 text-center mt-4 italic">Visualizando os top {aggregatedData.length} resultados por {metricLabels[metric].toLowerCase()}.</p>
       </div>
 
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 transition-colors">
-        <h3 className="font-bold text-gray-800 dark:text-white mb-6 flex items-center text-lg">
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg mr-3">
-                <FeatherIcon name="list" className="h-5 w-5 text-blue-500" />
-            </div>
-            Listagem de Apoio: {dimensionLabels[dimension]}
-        </h3>
+      {/* TABELA COMPARATIVA DINÂMICA (BOX DE DETALHES) */}
+      <div className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div className="p-10 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Espelho Multidimensional</h3>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Interatividade Cruzada Ativada</p>
+          </div>
+          <div className="flex gap-4">
+             <div className="text-right">
+                <p className="text-[9px] font-black text-slate-400 uppercase mb-1">Total Exposto (Filtro)</p>
+                <p className="text-lg font-black italic text-indigo-600">{formatCurrency(contracts.reduce((a,b) => a + (b.originSheet === 'Geral' ? b.saldoDevedor : 0), 0))}</p>
+             </div>
+          </div>
+        </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-600 dark:text-gray-300">
-            <thead className="text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-widest bg-gray-50/50 dark:bg-slate-900/30">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50/80 dark:bg-slate-800/50 text-[9px] font-black uppercase tracking-widest text-slate-400">
               <tr>
-                <th className="px-6 py-4 font-bold">{dimensionLabels[dimension]}</th>
-                <th className="px-6 py-4 font-bold text-right">Nº Contratos</th>
-                <th className="px-6 py-4 font-bold text-right">Saldo Devedor</th>
-                <th className="px-6 py-4 font-bold text-right">Provisão</th>
+                <th className="px-10 py-6">Sócio (Identidade)</th>
+                <th className="px-10 py-6">Modalidade</th>
+                <th className="px-10 py-6 text-center">Contratos</th>
+                <th className="px-10 py-6 text-right">Saldo Devedor</th>
+                <th className="px-10 py-6 text-center">Status Atraso</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {aggregatedData.map((item: any) => (
-                <tr key={item.name} className="hover:bg-blue-50/50 dark:hover:bg-slate-700/30 transition-colors group">
-                  <td className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">{item.name}</td>
-                  <td className="px-6 py-4 text-right tabular-nums">{item.count}</td>
-                  <td className="px-6 py-4 text-right font-mono tabular-nums">{item.saldoDevedor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
-                  <td className="px-6 py-4 text-right font-mono text-amber-600 dark:text-amber-400 tabular-nums">{item.valorProvisionado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {contracts.slice(0, 15).map((c) => (
+                <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-indigo-900/10 transition-colors">
+                  <td className="px-10 py-6">
+                     <p className="font-black text-slate-900 dark:text-white uppercase text-[10px] italic">{c.clientName}</p>
+                     <p className="text-[9px] text-slate-400 font-bold">{c.cpfCnpj}</p>
+                  </td>
+                  <td className="px-10 py-6 text-[10px] font-black text-slate-500 uppercase italic">{c.product}</td>
+                  <td className="px-10 py-6 text-center font-black tabular-nums text-slate-400 text-xs">01</td>
+                  <td className="px-10 py-6 text-right font-black tabular-nums text-slate-900 dark:text-white">
+                    {formatCurrency(c.saldoDevedor)}
+                  </td>
+                  <td className="px-10 py-6 text-center">
+                     <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-tighter ${c.daysOverdue > 90 ? 'bg-red-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                      {c.daysOverdue} d
+                     </span>
+                  </td>
                 </tr>
               ))}
+              {isEmpty && (
+                <tr>
+                  <td colSpan={5} className="py-24 text-center text-slate-300 font-black uppercase tracking-[0.3em] italic">Aguardando injeção de dados para consolidação</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

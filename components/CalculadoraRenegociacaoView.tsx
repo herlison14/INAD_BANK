@@ -121,8 +121,8 @@ const CalculadoraRenegociacaoView: React.FC<CalculadoraRenegociacaoViewProps> = 
                 <span className="text-white font-black text-2xl">C</span>
              </div>
              <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none">TERMINAL <span className="text-blue-400">BI</span></h3>
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">SICOOB RECOVERY v3.5</p>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter italic leading-none">TERMINAL <span className="text-blue-400">INAD</span></h3>
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">PAINEL INAD 1.0</p>
              </div>
           </div>
           <div className="flex gap-2">
@@ -305,7 +305,7 @@ const CalculadoraRenegociacaoView: React.FC<CalculadoraRenegociacaoViewProps> = 
              <FeatherIcon name="info" className="w-8 h-8" />
            </div>
            <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white italic">Protocolo de Recuperação Sicoob</h4>
+              <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white italic">Protocolo de Recuperação PAINEL INAD 1.0</h4>
               <div className="space-y-2 text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
                 <p>• Liquidação Total: Isenção de 100% dos encargos e 15% de deságio no principal.</p>
                 <p>• Fluxo Parcelado: Entrada mínima de 10% do saldo atualizado.</p>

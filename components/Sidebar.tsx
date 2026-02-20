@@ -19,12 +19,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     activeView, 
     setActiveView, 
     unreadNotificationCount, 
+    pendingTaskCount,
     user,
+    userRole,
     onLogout
 }) => {
   
   const navItems = useMemo(() => {
-    return [
+    const baseItems = [
       { name: 'Dashboard Principal', icon: 'home' },
       { name: 'Importação', icon: 'upload' },
       { name: 'Cartões em Atraso', icon: 'package' },
@@ -34,16 +36,21 @@ const Sidebar: React.FC<SidebarProps> = ({
       { name: 'Insights de IA', icon: 'cpu' },
       { name: 'Gestão de Tarefas', icon: 'check-square' },
       { name: 'Notificações', icon: 'bell' },
-      { name: 'Administração', icon: 'sliders' },
     ];
-  }, []);
+
+    if (userRole === UserRole.Admin || userRole === UserRole.Coordenador) {
+      baseItems.push({ name: 'Administração', icon: 'sliders' });
+    }
+
+    return baseItems;
+  }, [userRole]);
 
   return (
     <aside className={`fixed top-0 left-0 h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl shadow-2xl z-50 lg:z-30 transition-all transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:w-72 border-r border-slate-200 dark:border-slate-800 duration-300`}>
       <nav className="h-full flex flex-col p-6">
         <div className="flex items-center mb-10 px-2">
             <div className="w-1.5 h-6 bg-blue-600 rounded-full mr-3"></div>
-            <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest italic leading-none">RECOVERY <span className="text-blue-600">3.5</span></h2>
+            <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest italic leading-none">PAINEL <span className="text-blue-600">INAD 1.0</span></h2>
         </div>
         
         <ul className="flex-grow space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
@@ -63,11 +70,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <span className="ml-4 text-[11px] font-black uppercase tracking-wider">{item.name}</span>
                 </div>
                 
-                {item.name === 'Notificações' && unreadNotificationCount > 0 && (
-                    <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center relative z-10 ${activeView === item.name ? 'bg-white text-blue-600' : 'bg-red-500 text-white animate-pulse'}`}>
-                        {unreadNotificationCount}
-                    </span>
-                )}
+                <div className="flex items-center gap-1.5 relative z-10">
+                  {item.name === 'Notificações' && unreadNotificationCount > 0 && (
+                      <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-blue-600' : 'bg-red-500 text-white animate-pulse'}`}>
+                          {unreadNotificationCount}
+                      </span>
+                  )}
+                  {item.name === 'Gestão de Tarefas' && pendingTaskCount > 0 && (
+                      <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-blue-600' : 'bg-indigo-500 text-white'}`}>
+                          {pendingTaskCount}
+                      </span>
+                  )}
+                </div>
                 
                 {activeView === item.name && (
                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-500 opacity-90"></div>
@@ -77,7 +91,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </ul>
 
-        {/* User Menu - Executive Style Auditado */}
         <div className="mt-auto border-t border-slate-100 dark:border-white/10 pt-6 px-2">
           <div className="flex items-center gap-3 p-3 mb-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 group hover:border-blue-500/30 transition-all">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 uppercase italic">
@@ -104,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="mt-6 flex flex-col items-center gap-1 opacity-40">
             <FeatherIcon name="shield" className="w-3 h-3 text-slate-400" />
             <p className="text-[7px] text-slate-400 dark:text-slate-600 text-center font-black uppercase tracking-[0.3em] italic leading-tight">
-              SISTEMA AUDITADO SICOOB<br/>RECOVERY v3.5
+              SISTEMA AUDITADO SICOOB<br/>PAINEL INAD 1.0
             </p>
           </div>
         </div>

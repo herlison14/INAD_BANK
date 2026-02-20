@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
-import FeatherIcon from './FeatherIcon';
-import { UserRole, User } from '../types';
+import FeatherIcon from './components/FeatherIcon';
+import { UserRole, User } from './types';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <nav className="h-full flex flex-col p-6">
         <div className="flex items-center mb-10 px-2">
             <div className="w-1.5 h-6 bg-blue-600 rounded-full mr-3"></div>
-            <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest italic leading-none">RECOVERY <span className="text-blue-600">3.5</span></h2>
+            <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-widest italic leading-none">PAINEL <span className="text-blue-600">INAD 1.0</span></h2>
         </div>
         
         <ul className="flex-grow space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
@@ -77,7 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           ))}
         </ul>
 
-        {/* User Menu - Senior BI Style Hub */}
         <div className="mt-auto border-t border-slate-100 dark:border-white/10 pt-6 px-2">
           <div className="flex items-center gap-3 p-3 mb-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 group hover:border-blue-500/30 transition-all">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 uppercase italic">
@@ -89,9 +88,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {user.role} • {user.pa || 'GLOBAL'}
               </p>
             </div>
-            <button className="p-1.5 text-slate-400 hover:text-blue-500 transition-colors">
-              <FeatherIcon name="settings" className="w-4 h-4" />
-            </button>
           </div>
 
           <button 

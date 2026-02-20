@@ -1,16 +1,17 @@
 
 import React, { useMemo } from 'react';
-import { Contract, ContractStatus, UserRole } from '../types';
+import { Contract, UserRole } from '../types';
 import KpiCard from './KpiCard';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, Cell, AreaChart, Area, BarChart, Bar
+  ResponsiveContainer, Cell, BarChart, Bar, PieChart, Pie
 } from 'recharts';
 import { formatCurrency } from '../utils/formatter';
 import FeatherIcon from './FeatherIcon';
 import PredictiveAIAlerts from './PredictiveAIAlerts';
 import SmartQueryBar from './SmartQueryBar';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useApp } from '../context/AppContext';
 
 interface DashboardProps {
     contracts: Contract[];
@@ -18,152 +19,185 @@ interface DashboardProps {
     onNavigateToDetails: (id: string) => void;
     isDarkMode: boolean;
     userRole: UserRole;
-    onGoToImport?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, isDarkMode, userRole, onGoToImport }) => {
+const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, isDarkMode, userRole }) => {
+  const { lastUpdateTimestamp } = useApp();
+  
   const isEmpty = contracts.length === 0;
-  const activeContracts = useMemo(() => contracts.filter(c => c.status !== ContractStatus.Resolved), [contracts]);
 
-  const statsData = useMemo(() => {
-    if (isEmpty) return { totalSaldo: 0, totalProv: 0, ticketMedio: 0, highRiskCount: 0, count: 0 };
-    const totalSaldo = activeContracts.reduce((sum, c) => sum + c.saldoDevedor, 0);
-    const totalProv = activeContracts.reduce((sum, c) => sum + c.valorProvisionado, 0);
-    const ticketMedio = activeContracts.length > 0 ? totalSaldo / activeContracts.length : 0;
-    const highRiskCount = activeContracts.filter(c => c.daysOverdue > 90).length;
+  // Cálculos Financeiros Sênior (Auditados)
+  const stats = useMemo(() => {
+    if (isEmpty) return { totalSaldo: 0, totalProv: 0, coverage: 0, count: 0, criticalCount: 0 };
+    
+    // Total LGD (Exposição Bruta)
+    const totalSaldo = contracts.reduce((sum, c) => sum + (c.saldoDevedor || 0), 0);
+    // Total PCLD (Provisão)
+    const totalProv = contracts.reduce((sum, c) => sum + (c.valorProvisionado || 0), 0);
+    // Índice de Cobertura Bancária
+    const coverage = totalSaldo > 0 ? (totalProv / totalSaldo) * 100 : 0;
+    // Quantidade Crítica (Perdas Reais > 90d)
+    const criticalCount = contracts.filter(c => c.daysOverdue > 90).length;
 
-    return { totalSaldo, totalProv, ticketMedio, highRiskCount, count: activeContracts.length };
-  }, [activeContracts, isEmpty]);
+    return { totalSaldo, totalProv, coverage, count: contracts.length, criticalCount };
+  }, [contracts, isEmpty]);
 
-  const ageingData = useMemo(() => {
+  // Buckets de Aging (Envelhecimento da Dívida)
+  const agingBuckets = useMemo(() => {
     if (isEmpty) return [];
-    const categories = {
-      '1-30d': 0, '31-60d': 0, '61-90d': 0, '91-180d': 0, '181-365d': 0, '365d+': 0
-    };
-    activeContracts.forEach(c => {
-      if (c.daysOverdue <= 30) categories['1-30d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 60) categories['31-60d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 90) categories['61-90d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 180) categories['91-180d'] += c.saldoDevedor;
-      else if (c.daysOverdue <= 365) categories['181-365d'] += c.saldoDevedor;
-      else categories['365d+'] += c.saldoDevedor;
-    });
-    return Object.entries(categories).map(([name, value]) => ({ name, value }));
-  }, [activeContracts, isEmpty]);
+    const buckets = [
+      { range: '0-30d', value: 0 },
+      { range: '31-60d', value: 0 },
+      { range: '61-90d', value: 0 },
+      { range: '90d+', value: 0 },
+    ];
 
-  if (isEmpty) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center min-h-[75vh] text-center p-6"
-      >
-        <div className="bg-[#020617] p-16 rounded-[5rem] shadow-4xl border border-white/5 max-w-4xl relative overflow-hidden group">
-          {/* Fundo Decorativo */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
-          <div className="absolute -bottom-32 -right-32 p-8 opacity-5 group-hover:scale-110 group-hover:rotate-12 transition-all duration-[5s]">
-            <FeatherIcon name="cpu" className="w-[30rem] h-[30rem] text-white" />
-          </div>
-          
-          <div className="relative z-10">
-            <div className="bg-blue-600/20 p-8 rounded-[2.5rem] w-fit mx-auto mb-12 border border-blue-500/20 shadow-2xl">
-              <FeatherIcon name="zap" className="w-16 h-16 text-blue-400 animate-pulse" />
-            </div>
-            
-            <h2 className="text-7xl font-black text-white uppercase tracking-tighter italic leading-[0.9] mb-8">
-              PROTOCOLOS EM <br/> <span className="text-blue-500">STANDBY</span>
-            </h2>
-            
-            <p className="text-slate-400 font-bold uppercase text-[11px] tracking-[0.5em] mb-16 leading-relaxed max-w-lg mx-auto opacity-60">
-              Nenhuma carga de ativos foi detectada no diretório auditado. O sistema aguarda injeção de base estratégica (Col A-AB) ou fluxo de cartões (Col A-N).
-            </p>
-            
-            <button 
-              onClick={onGoToImport}
-              className="group bg-blue-600 hover:bg-blue-700 text-white px-20 py-8 rounded-[3rem] font-black uppercase text-[13px] tracking-[0.4em] shadow-3xl shadow-blue-600/40 transition-all flex items-center gap-6 mx-auto active:scale-95"
-            >
-              Iniciar Protocolo de Injeção
-              <FeatherIcon name="upload" className="w-5 h-5 transition-transform group-hover:-translate-y-1" />
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-16 flex gap-12 opacity-30">
-            <div className="flex flex-col items-center gap-2">
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Segurança</span>
-                <FeatherIcon name="shield" className="w-6 h-6 text-slate-500" />
-            </div>
-            <div className="flex flex-col items-center gap-2">
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Auditado</span>
-                <FeatherIcon name="check-circle" className="w-6 h-6 text-slate-500" />
-            </div>
-            <div className="flex flex-col items-center gap-2">
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Sincro</span>
-                <FeatherIcon name="refresh-cw" className="w-6 h-6 text-slate-500" />
-            </div>
-        </div>
-      </motion.div>
-    );
-  }
+    contracts.forEach(c => {
+      if (c.daysOverdue <= 30) buckets[0].value += c.saldoDevedor;
+      else if (c.daysOverdue <= 60) buckets[1].value += c.saldoDevedor;
+      else if (c.daysOverdue <= 90) buckets[2].value += c.saldoDevedor;
+      else buckets[3].value += c.saldoDevedor;
+    });
+
+    return buckets;
+  }, [contracts, isEmpty]);
+
+  const portfolioMix = useMemo(() => {
+    if (isEmpty) return [];
+    const geral = contracts.filter(c => c.originSheet === 'Geral').reduce((s, c) => s + c.saldoDevedor, 0);
+    const cartoes = contracts.filter(c => c.originSheet === 'Cartoes').reduce((s, c) => s + c.saldoDevedor, 0);
+    return [
+      { name: 'Crédito Estratégico', value: geral, color: '#4f46e5' },
+      { name: 'Fluxo Cartões', value: cartoes, color: '#f43f5e' }
+    ];
+  }, [contracts, isEmpty]);
+
+  const axisColor = isDarkMode ? '#94a3b8' : '#64748b';
 
   return (
-    <div className="space-y-12 animate-fade-in pb-20">
+    <div className="space-y-10 animate-fade-in pb-20 max-w-[1600px] mx-auto">
+      <AnimatePresence>
+        {!isEmpty && lastUpdateTimestamp && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-2xl w-fit mx-auto shadow-lg"
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest italic">
+              Governança de Dados: Sincronização Consolidada em {lastUpdateTimestamp}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <SmartQueryBar />
       <PredictiveAIAlerts contracts={contracts} onNavigateToDetails={onNavigateToDetails} />
 
+      {/* PAINEL DE INDICADORES CRÍTICOS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <KpiCard title="Saldo em Atraso" value={statsData.totalSaldo} icon="dollar" trend="+3.2%" />
-        <KpiCard title="Total Provisionado" value={statsData.totalProv} icon="package" trend="-1.5%" isNegativeTrend />
-        <KpiCard title="Ticket Médio" value={statsData.ticketMedio} icon="ticket" trend="+0.8%" />
-        <KpiCard title="Risco Crítico (>90d)" value={statsData.highRiskCount} icon="clock" trend="+12%" isNegativeTrend />
+        <KpiCard 
+            title="Exposição (LGD)" 
+            value={stats.totalSaldo} 
+            icon="dollar" 
+            trend="Consolidado Y+I" 
+        />
+        <KpiCard 
+            title="Provisão PCLD" 
+            value={stats.totalProv} 
+            icon="shield" 
+            trend="Base Coluna Z" 
+        />
+        <KpiCard 
+            title="Índice de Cobertura" 
+            value={`${stats.coverage.toFixed(2)}%`} 
+            icon="activity" 
+            trend={stats.coverage < 15 ? "Abaixo do Target" : "Ideal: >15%"} 
+            isNegativeTrend={stats.coverage < 15}
+        />
+        <KpiCard 
+            title="Loss Expectancy (90d+)" 
+            value={stats.criticalCount} 
+            icon="alert-circle" 
+            trend="Intervenção Imediata"
+            isNegativeTrend={true}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="premium-card p-12 rounded-[4rem] shadow-2xl">
-          <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic mb-12">Performance de Recuperação</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* GRÁFICO: ENVELHECIMENTO DA DÍVIDA (AGING) */}
+        <div className="premium-card p-12 rounded-[4rem] shadow-2xl lg:col-span-2 relative overflow-hidden">
+          <div className="flex justify-between items-center mb-12">
+            <div>
+              <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Análise de Aging (Vencimento)</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Exposição Financeira por Janela de Atraso</p>
+            </div>
+            <div className="p-4 bg-indigo-500/10 rounded-3xl text-indigo-500">
+               <FeatherIcon name="clock" className="w-6 h-6" />
+            </div>
+          </div>
+          
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={[
-                { month: 'Set', real: 420000 }, { month: 'Out', real: 380000 }, { month: 'Nov', real: 510000 }, { month: 'Dez', real: 640000 }
-              ]}>
-                <defs>
-                  <linearGradient id="colorReal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
+              <BarChart data={agingBuckets}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="month" stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$${val/1000}k`} />
+                <XAxis dataKey="range" stroke={axisColor} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={axisColor} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${(val/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)' }}
-                  itemStyle={{ fontWeight: 'bold' }}
+                  cursor={{fill: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'}}
+                  contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }} 
+                  formatter={(v: number) => formatCurrency(v)} 
                 />
-                <Area type="monotone" dataKey="real" stroke="#4f46e5" strokeWidth={5} fillOpacity={1} fill="url(#colorReal)" name="Realizado" />
-              </AreaChart>
+                <Bar dataKey="value" radius={[15, 15, 0, 0]}>
+                  {agingBuckets.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 3 ? '#f43f5e' : '#4f46e5'} fillOpacity={0.8 + (index * 0.05)} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="premium-card p-12 rounded-[4rem] shadow-2xl">
-          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-12 uppercase tracking-tighter italic">Ageing Financeiro</h3>
-          <div className="h-96">
+        {/* GRÁFICO: COMPOSIÇÃO DE CARTEIRA (MIX) */}
+        <div className="premium-card p-12 rounded-[4rem] shadow-2xl lg:col-span-1 relative overflow-hidden">
+          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-8 uppercase tracking-tighter italic">Composição do Risco</h3>
+          <div className="h-64 mb-10">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ageingData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="name" stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={isDarkMode ? '#94a3b8' : '#64748b'} fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '24px' }}
-                  formatter={(val: number) => [formatCurrency(val), 'Saldo']}
-                />
-                <Bar dataKey="value" fill="#4f46e5" radius={[16, 16, 0, 0]} barSize={50}>
-                    {ageingData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fillOpacity={1 - index * 0.12} />
-                    ))}
-                </Bar>
-              </BarChart>
+              <PieChart>
+                <Pie 
+                    data={isEmpty ? [{name: 'Sem Dados', value: 1}] : portfolioMix} 
+                    cx="50%" cy="50%" 
+                    innerRadius={70} 
+                    outerRadius={100} 
+                    paddingAngle={8} 
+                    dataKey="value"
+                >
+                  {portfolioMix.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                  ))}
+                  {isEmpty && <Cell fill="#334155" />}
+                </Pie>
+                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+              </PieChart>
             </ResponsiveContainer>
+          </div>
+          
+          <div className="space-y-4">
+             {portfolioMix.map((item) => (
+                <div key={item.name} className="flex justify-between items-center p-5 rounded-[2rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:scale-[1.02] transition-transform">
+                    <div className="flex items-center gap-4">
+                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></div>
+                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">{item.name}</span>
+                    </div>
+                    <span className="text-sm font-black italic tabular-nums text-slate-900 dark:text-white">{formatCurrency(item.value)}</span>
+                </div>
+             ))}
+             {isEmpty && (
+                <div className="py-10 text-center space-y-4">
+                   <FeatherIcon name="package" className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-800" />
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Aguardando Fluxo de Dados</p>
+                </div>
+             )}
           </div>
         </div>
       </div>
