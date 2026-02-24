@@ -26,6 +26,7 @@ export interface Contract {
   product: string;
   saldoDevedor: number;
   valorProvisionado: number;
+  valorPago?: number; // Adicionado para KPI de Cash Recovery
   dueDate: string;
   daysOverdue: number;
   status: ContractStatus;

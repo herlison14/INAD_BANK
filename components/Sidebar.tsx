@@ -36,6 +36,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       { name: 'Insights de IA', icon: 'cpu' },
       { name: 'Gestão de Tarefas', icon: 'check-square' },
       { name: 'Notificações', icon: 'bell' },
+      { name: 'Automações', icon: 'zap' },
     ];
 
     if (userRole === UserRole.Admin || userRole === UserRole.Coordenador) {

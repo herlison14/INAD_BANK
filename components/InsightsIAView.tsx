@@ -12,8 +12,15 @@ interface InsightsIAViewProps {
 }
 
 const InsightsIAView: React.FC<InsightsIAViewProps> = ({ contracts, onNavigateToDetails }) => {
-  const { setTasks, setNotifications, aiAnalysis, setAiAnalysis } = useApp();
+  const { setTasks, setNotifications, aiAnalysis, setAiAnalysis, executarVarreduraCredito } = useApp();
   const [loading, setLoading] = useState(false);
+  const [manualScanResult, setManualScanResult] = useState<number | null>(null);
+
+  const handleManualScan = () => {
+    const count = executarVarreduraCredito();
+    setManualScanResult(count);
+    setTimeout(() => setManualScanResult(null), 3000);
+  };
 
   const performScan = async () => {
     if (contracts.length === 0) return;
@@ -147,13 +154,21 @@ const InsightsIAView: React.FC<InsightsIAViewProps> = ({ contracts, onNavigateTo
         <div className="relative z-10">
           <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-4">Motor de <span className="text-blue-400">Insights IA</span></h2>
           <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.4em]">Varredura Tripla: Risco, Volume e Urgência</p>
-          <button 
-            onClick={performScan} 
-            disabled={loading}
-            className="mt-10 px-10 py-4 bg-blue-600 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all"
-          >
-            {loading ? 'Sincronizando Motor...' : 'Rodar Nova Varredura'}
-          </button>
+          <div className="flex flex-wrap gap-4 mt-10">
+            <button 
+              onClick={performScan} 
+              disabled={loading}
+              className="px-10 py-4 bg-blue-600 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {loading ? 'Sincronizando Motor...' : 'Rodar Insights IA'}
+            </button>
+            <button 
+              onClick={handleManualScan} 
+              className="px-10 py-4 bg-slate-800 border border-white/10 rounded-3xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-700 transition-all relative"
+            >
+              {manualScanResult !== null ? `Geradas ${manualScanResult} Tarefas!` : 'Varredura de Crédito (Regra)'}
+            </button>
+          </div>
         </div>
       </div>
 

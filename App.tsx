@@ -1,7 +1,11 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserRole, TaskStatus, AppNotification, User, Contract } from './types';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  AreaChart, Area, ComposedChart, Line
+} from 'recharts';
+import { UserRole, TaskStatus, AppNotification, User, Contract, Task } from './types';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import Sidebar from './components/Sidebar';
@@ -12,6 +16,7 @@ import { useSelfHealing } from './hooks/useSelfHealing';
 import FilterBar from './components/FilterBar';
 import LoginView from './components/LoginView';
 import FeatherIcon from './components/FeatherIcon';
+import PredictiveAIAlerts from './components/PredictiveAIAlerts';
 
 // Components de Visualização
 import ImportacaoView from './components/ImportacaoView';
@@ -22,6 +27,10 @@ import NotificacoesView from './components/NotificacoesView';
 import CartoesAtrasoView from './components/CartoesAtrasoView';
 import VisaoDinamicaView from './components/VisaoDinamicaView';
 import CalculadoraRenegociacaoView from './components/CalculadoraRenegociacaoView';
+import AnaliseDinamicaView from './components/AnaliseDinamicaView';
+import AnaliseDinamicaPro from './components/AnaliseDinamicaPro';
+import AutomacoesView from './components/AutomacoesView';
+import LetreiroDinamico from './components/LetreiroDinamico';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VIEWS
@@ -37,6 +46,7 @@ export const VIEWS = {
   CARTOES_ATRASO: 'Cartões em Atraso',
   CALCULADORA: 'Calculadora',
   ADMINISTRACAO: 'Administração',
+  AUTOMACOES: 'Automações',
 } as const;
 
 export type ViewName = (typeof VIEWS)[keyof typeof VIEWS];
@@ -49,7 +59,7 @@ const ROLE_PERMISSIONS: Record<UserRole, ViewName[]> = {
   [UserRole.Coordenador]: [
     VIEWS.DASHBOARD, VIEWS.ANALISE_DINAMICA, VIEWS.IMPORTACAO, VIEWS.INSIGHTS_IA,
     VIEWS.DETALHAMENTO, VIEWS.GESTAO_TAREFAS, VIEWS.NOTIFICACOES,
-    VIEWS.CARTOES_ATRASO, VIEWS.CALCULADORA,
+    VIEWS.CARTOES_ATRASO, VIEWS.CALCULADORA, VIEWS.AUTOMACOES,
   ],
   [UserRole.Gerente]: [
     VIEWS.DASHBOARD, VIEWS.DETALHAMENTO, VIEWS.GESTAO_TAREFAS,
@@ -212,7 +222,12 @@ const OperadorModal: React.FC<{ isOpen: boolean; editingOperador: Operador | nul
   </AnimatePresence>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENTE: LOGIN
+// ─────────────────────────────────────────────────────────────────────────────
+
 const AdministracaoView: React.FC = () => {
+  const { auditLogs } = useApp();
   const [operadores, setOperadores] = useState<Operador[]>(MOCK_OPERADORES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOperador, setEditingOperador] = useState<Operador | null>(null);
@@ -227,6 +242,38 @@ const AdministracaoView: React.FC = () => {
   const filteredOperadores = useMemo(() => { const s = searchTerm.toLowerCase(); return operadores.filter((op) => (!s || op.name.toLowerCase().includes(s) || op.email.toLowerCase().includes(s) || op.pa.toLowerCase().includes(s)) && (filterRole === 'Todos' || op.role === filterRole)); }, [operadores, searchTerm, filterRole]);
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => { setToast({ message, type }); setTimeout(() => setToast(null), 3000); }, []);
   const handleFormChange = useCallback((field: keyof FormState, value: string) => { setForm((prev) => ({ ...prev, [field]: value })); setErrors((prev) => ({ ...prev, [field]: undefined })); }, []);
+  
+  const handleExportAuditLogs = useCallback(() => {
+    if (auditLogs.length === 0) {
+      showToast('Nenhum log para exportar', 'error');
+      return;
+    }
+    
+    const headers = ['ID', 'Usuário', 'Ação', 'Detalhes', 'Data/Hora'];
+    const rows = auditLogs.map(log => [
+      log.id,
+      log.userEmail,
+      log.action,
+      log.details,
+      log.timestamp
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Logs exportados com sucesso!');
+  }, [auditLogs, showToast]);
+
   const validate = useCallback((): boolean => {
     const e: Partial<FormState> = {};
     if (!form.name.trim()) e.name = 'Nome é obrigatório';
@@ -248,7 +295,10 @@ const AdministracaoView: React.FC = () => {
       <AnimatePresence>{toast && (<motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-bold flex items-center gap-2 ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}><FeatherIcon name={toast.type === 'success' ? 'check-circle' : 'trash-2'} className="w-4 h-4" />{toast.message}</motion.div>)}</AnimatePresence>
       <div className="flex items-center justify-between">
         <div><h1 className="text-3xl font-black text-slate-800 dark:text-white">Administração</h1><p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Gerencie operadores, cargos e permissões</p></div>
-        <button onClick={() => { setEditingOperador(null); setForm(INITIAL_FORM); setErrors({}); setIsModalOpen(true); }} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105"><FeatherIcon name="user-plus" className="w-4 h-4" />Novo Operador</button>
+        <div className="flex gap-3">
+          <button onClick={handleExportAuditLogs} className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-black rounded-xl shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700"><FeatherIcon name="download" className="w-4 h-4" />Exportar Logs</button>
+          <button onClick={() => { setEditingOperador(null); setForm(INITIAL_FORM); setErrors({}); setIsModalOpen(true); }} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105"><FeatherIcon name="user-plus" className="w-4 h-4" />Novo Operador</button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {(Object.values(UserRole) as UserRole[]).map((role) => (
@@ -326,7 +376,7 @@ function useFilterState() {
 // ─────────────────────────────────────────────────────────────────────────────
 const AppContent: React.FC = () => {
   const { healingError } = useSelfHealing();
-  const { allContracts, notifications, setNotifications, tasks, updateTaskStatus, importContracts, isSyncing } = useApp();
+  const { allContracts, notifications, setNotifications, tasks, setTasks, updateTaskStatus, importContracts, isSyncing, automationRules, automationLogs, toggleAutomationRule, createAutomationRule, deleteAutomationRule } = useApp();
 
   const { isAuthenticated, loggedUser, handleLoginSuccess, handleLogout } = useAuthState();
   const { activeView, setActiveView, calculatorInitialValue, setCalculatorInitialValue } = useNavigationState(loggedUser);
@@ -335,6 +385,41 @@ const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [syncResult, setSyncResult] = useState<ImportSyncResult | null>(null);
+
+  // ─── ENGINE DE IA: Especialista em Renegociação ──────────────────────────────
+  const runIAAnalysis = useCallback((newContracts: Contract[]) => {
+    const newTasks: Task[] = [];
+    const newAlerts: AppNotification[] = [];
+
+    newContracts.forEach(contract => {
+      // Regra 1: Atraso Crítico (IA de Recuperação)
+      if (contract.daysOverdue > 60 && contract.saldoDevedor > 30000) {
+        newTasks.push({
+          id: `IA-${Date.now()}-${contract.id}`,
+          contractId: contract.id,
+          contractClient: contract.clientName,
+          managerEmail: contract.managerEmail,
+          description: `[IA] Renegociação Estratégica: Score de risco elevado. Sugestão: Carência 60 dias + Redução de taxa para 1.2% a.m.`,
+          status: TaskStatus.Pendente,
+          priority: 1,
+          creationDate: new Date().toLocaleString('pt-BR'),
+          aiScore: 98
+        });
+
+        newAlerts.push({
+          id: `notif-${Date.now()}-${contract.id}`,
+          managerEmail: contract.managerEmail,
+          type: 'URGENTE',
+          message: `🔥 Alerta Preditivo: IA detectou alta probabilidade de default para ${contract.clientName}. Ação recomendada em 24h.`,
+          timestamp: new Date().toLocaleString('pt-BR'),
+          read: false
+        });
+      }
+    });
+
+    if (newTasks.length > 0) setTasks(prev => [...newTasks, ...prev]);
+    if (newAlerts.length > 0) setNotifications(prev => [...newAlerts, ...prev]);
+  }, [setTasks, setNotifications]);
 
   const [darkMode, setDarkMode] = useState<boolean>(() => { try { return localStorage.getItem('darkMode') === 'true'; } catch { return false; } });
 
@@ -382,11 +467,12 @@ const AppContent: React.FC = () => {
     if (newContracts && newContracts.length > 0) {
       const result = importContracts(newContracts);
       setSyncResult(result);
+      runIAAnalysis(newContracts); // Dispara análise de especialista
       // Esconde o toast após 6 segundos
       setTimeout(() => setSyncResult(null), 6000);
     }
     setActiveView(VIEWS.DASHBOARD);
-  }, [importContracts, setActiveView]);
+  }, [importContracts, setActiveView, runIAAnalysis]);
 
   if (!isAuthenticated || !loggedUser) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
@@ -425,26 +511,7 @@ const AppContent: React.FC = () => {
           onDataImported={handleDataImported}
         />
 
-        {/* Ticker de exposição */}
-        <div className="h-12 bg-slate-900 dark:bg-black text-white flex items-center border-b border-white/5 relative z-20 overflow-hidden shrink-0">
-          <div className="absolute left-0 bg-red-600 px-6 h-full flex items-center font-black text-[10px] italic skew-x-[-15deg] -ml-4 shadow-xl z-30">ALERTA DE EXPOSIÇÃO</div>
-          <div className="flex animate-infinite-scroll whitespace-nowrap gap-16 items-center pl-64">
-            <span className="text-[11px] font-black uppercase tracking-widest">
-              SALDO DEVEDOR CONSOLIDADO (BASE Y):{' '}
-              <span className="text-emerald-400 text-lg ml-2">{totalSaldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-            </span>
-            {isSyncing && (
-              <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                <FeatherIcon name="loader" className="w-3 h-3 animate-spin" /> SINCRONIZANDO DADOS...
-              </span>
-            )}
-            {!isSyncing && (
-              <span className="text-[10px] font-bold opacity-30 uppercase tracking-[0.3em] flex items-center gap-3">
-                <FeatherIcon name="check-circle" className="w-4 h-4" /> SINCRONIZAÇÃO MULTIDIMENSIONAL ATIVA
-              </span>
-            )}
-          </div>
-        </div>
+        <LetreiroDinamico filtros={filters} />
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto custom-scrollbar">
           {viewsWithFilterBar.includes(activeView) && (
@@ -462,16 +529,35 @@ const AppContent: React.FC = () => {
                   <AccessDenied role={loggedUser.role} />
                 ) : (
                   <>
-                    {activeView === VIEWS.DASHBOARD && <Dashboard contracts={filteredContracts} filterName="Geral" onNavigateToDetails={navigateToDetails} isDarkMode={darkMode} userRole={loggedUser.role} />}
-                    {activeView === VIEWS.ANALISE_DINAMICA && <VisaoDinamicaView contracts={filteredContracts} isDarkMode={darkMode} />}
+                    {activeView === VIEWS.DASHBOARD && (
+                      <div className="space-y-16">
+                        <Dashboard contracts={filteredContracts} filterName="Geral" onNavigateToDetails={navigateToDetails} isDarkMode={darkMode} userRole={loggedUser.role} />
+                        <PredictiveAIAlerts contracts={filteredContracts} onNavigateToDetails={navigateToDetails} />
+                      </div>
+                    )}
+                    {activeView === VIEWS.ANALISE_DINAMICA && (
+                      <div className="space-y-8">
+                        <AnaliseDinamicaPro contracts={filteredContracts} />
+                        <AnaliseDinamicaView contracts={filteredContracts} />
+                      </div>
+                    )}
                     {activeView === VIEWS.IMPORTACAO && <ImportacaoView onDataImported={handleDataImported} contractCount={allContracts.length} />}
                     {activeView === VIEWS.INSIGHTS_IA && <InsightsIAView contracts={filteredContracts} onNavigateToDetails={navigateToDetails} />}
                     {activeView === VIEWS.DETALHAMENTO && <DetalhamentoView contracts={filteredContracts} initialSearchTerm={debouncedSearch} onNavigateToDetails={(id) => setGlobalSearch(id)} onSimulateRenegotiation={(val) => { setCalculatorInitialValue(val); setActiveView(VIEWS.CALCULADORA); }} userRole={loggedUser.role} />}
-                    {activeView === VIEWS.GESTAO_TAREFAS && <GestaoTarefasView tasks={tasks} onUpdateTaskStatus={updateTaskStatus} onNavigateToDetails={navigateToDetails} />}
+                    {activeView === VIEWS.GESTAO_TAREFAS && <GestaoTarefasView tasks={tasks} contracts={allContracts} onUpdateTaskStatus={updateTaskStatus} onNavigateToDetails={navigateToDetails} />}
                     {activeView === VIEWS.NOTIFICACOES && <NotificacoesView notifications={notifications} onNavigateToDetails={navigateToDetails} onMarkAllAsRead={handleMarkAllAsRead} />}
                     {activeView === VIEWS.CARTOES_ATRASO && <CartoesAtrasoView contracts={filteredContracts} isDarkMode={darkMode} onNavigateToDetails={navigateToDetails} />}
                     {activeView === VIEWS.CALCULADORA && <CalculadoraRenegociacaoView isDarkMode={darkMode} initialValue={calculatorInitialValue} />}
                     {activeView === VIEWS.ADMINISTRACAO && <AdministracaoView />}
+                    {activeView === VIEWS.AUTOMACOES && (
+                      <AutomacoesView 
+                        rules={automationRules} 
+                        logs={automationLogs} 
+                        onToggleRule={toggleAutomationRule}
+                        onCreateRule={createAutomationRule}
+                        onDeleteRule={deleteAutomationRule}
+                      />
+                    )}
                   </>
                 )}
               </motion.div>

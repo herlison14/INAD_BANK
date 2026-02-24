@@ -1,14 +1,13 @@
 
 import React, { useMemo } from 'react';
 import { Contract, UserRole } from '../types';
-import KpiCard from './KpiCard';
+import DashboardKpiGrid from './DashboardKpiGrid';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, BarChart, Bar, PieChart, Pie
 } from 'recharts';
 import { formatCurrency } from '../utils/formatter';
 import FeatherIcon from './FeatherIcon';
-import PredictiveAIAlerts from './PredictiveAIAlerts';
 import SmartQueryBar from './SmartQueryBar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
@@ -25,22 +24,6 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
   const { lastUpdateTimestamp } = useApp();
   
   const isEmpty = contracts.length === 0;
-
-  // Cálculos Financeiros Sênior (Auditados)
-  const stats = useMemo(() => {
-    if (isEmpty) return { totalSaldo: 0, totalProv: 0, coverage: 0, count: 0, criticalCount: 0 };
-    
-    // Total LGD (Exposição Bruta)
-    const totalSaldo = contracts.reduce((sum, c) => sum + (c.saldoDevedor || 0), 0);
-    // Total PCLD (Provisão)
-    const totalProv = contracts.reduce((sum, c) => sum + (c.valorProvisionado || 0), 0);
-    // Índice de Cobertura Bancária
-    const coverage = totalSaldo > 0 ? (totalProv / totalSaldo) * 100 : 0;
-    // Quantidade Crítica (Perdas Reais > 90d)
-    const criticalCount = contracts.filter(c => c.daysOverdue > 90).length;
-
-    return { totalSaldo, totalProv, coverage, count: contracts.length, criticalCount };
-  }, [contracts, isEmpty]);
 
   // Buckets de Aging (Envelhecimento da Dívida)
   const agingBuckets = useMemo(() => {
@@ -92,37 +75,9 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
       </AnimatePresence>
 
       <SmartQueryBar />
-      <PredictiveAIAlerts contracts={contracts} onNavigateToDetails={onNavigateToDetails} />
 
       {/* PAINEL DE INDICADORES CRÍTICOS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <KpiCard 
-            title="Exposição (LGD)" 
-            value={stats.totalSaldo} 
-            icon="dollar" 
-            trend="Consolidado Y+I" 
-        />
-        <KpiCard 
-            title="Provisão PCLD" 
-            value={stats.totalProv} 
-            icon="shield" 
-            trend="Base Coluna Z" 
-        />
-        <KpiCard 
-            title="Índice de Cobertura" 
-            value={`${stats.coverage.toFixed(2)}%`} 
-            icon="activity" 
-            trend={stats.coverage < 15 ? "Abaixo do Target" : "Ideal: >15%"} 
-            isNegativeTrend={stats.coverage < 15}
-        />
-        <KpiCard 
-            title="Loss Expectancy (90d+)" 
-            value={stats.criticalCount} 
-            icon="alert-circle" 
-            trend="Intervenção Imediata"
-            isNegativeTrend={true}
-        />
-      </div>
+      <DashboardKpiGrid contratos={contracts} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* GRÁFICO: ENVELHECIMENTO DA DÍVIDA (AGING) */}
