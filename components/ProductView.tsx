@@ -63,9 +63,9 @@ const ProductView: React.FC<ProductViewProps> = ({ contracts, isDarkMode }) => {
               cursor={{fill: 'rgba(245, 158, 11, 0.1)'}} 
               contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, color: tooltipText }} 
               itemStyle={{ color: tooltipText }}
-              formatter={(value: number, name: string) => {
+              formatter={(value: any, name: any) => {
                   if (name === 'Saldo Devedor' || name === 'Valor Provisionado') {
-                      return formatCurrency(value);
+                      return formatCurrency(Number(value || 0));
                   }
                   return value;
               }}

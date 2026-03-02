@@ -16,11 +16,12 @@ interface DashboardProps {
     contracts: Contract[];
     filterName: string;
     onNavigateToDetails: (id: string) => void;
+    onCardClick?: (key: string) => void;
     isDarkMode: boolean;
     userRole: UserRole;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, isDarkMode, userRole }) => {
+const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, onCardClick, isDarkMode, userRole }) => {
   const { lastUpdateTimestamp } = useApp();
   
   const isEmpty = contracts.length === 0;
@@ -55,7 +56,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
     ];
   }, [contracts, isEmpty]);
 
-  const axisColor = isDarkMode ? '#94a3b8' : '#64748b';
+  const axisColor = isDarkMode ? 'var(--text-secondary)' : 'var(--text-secondary)';
 
   return (
     <div className="space-y-10 animate-fade-in pb-20 max-w-[1600px] mx-auto">
@@ -64,10 +65,10 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
           <motion.div 
             initial={{ opacity: 0, y: -20 }} 
             animate={{ opacity: 1, y: 0 }} 
-            className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-2xl w-fit mx-auto shadow-lg"
+            className="flex items-center gap-3 bg-[var(--status-success)]/10 border border-[var(--status-success)]/20 px-6 py-3 rounded-2xl w-fit mx-auto shadow-lg"
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest italic">
+            <div className="w-2.5 h-2.5 rounded-full bg-[var(--status-success)] animate-pulse" />
+            <span className="text-[10px] font-black text-[var(--status-success)] uppercase tracking-widest italic">
               Governança de Dados: Sincronização Consolidada em {lastUpdateTimestamp}
             </span>
           </motion.div>
@@ -77,17 +78,17 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
       <SmartQueryBar />
 
       {/* PAINEL DE INDICADORES CRÍTICOS */}
-      <DashboardKpiGrid contratos={contracts} />
+      <DashboardKpiGrid contratos={contracts} onCardClick={onCardClick} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* GRÁFICO: ENVELHECIMENTO DA DÍVIDA (AGING) */}
         <div className="premium-card p-12 rounded-[4rem] shadow-2xl lg:col-span-2 relative overflow-hidden">
           <div className="flex justify-between items-center mb-12">
             <div>
-              <h3 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tighter italic">Análise de Aging (Vencimento)</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Exposição Financeira por Janela de Atraso</p>
+              <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter italic">Análise de Aging (Vencimento)</h3>
+              <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-1">Exposição Financeira por Janela de Atraso</p>
             </div>
-            <div className="p-4 bg-indigo-500/10 rounded-3xl text-indigo-500">
+            <div className="p-4 bg-[var(--brand-primary)]/10 rounded-3xl text-[var(--brand-primary)]">
                <FeatherIcon name="clock" className="w-6 h-6" />
             </div>
           </div>
@@ -95,17 +96,18 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={agingBuckets}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#334155' : '#e2e8f0'} />
-                <XAxis dataKey="range" stroke={axisColor} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={axisColor} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${(val/1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+                <XAxis dataKey="range" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${(val/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  cursor={{fill: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'}}
-                  contentStyle={{ backgroundColor: isDarkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }} 
-                  formatter={(v: number) => formatCurrency(v)} 
+                  cursor={{fill: 'var(--surface-elevated)', fillOpacity: 0.1}}
+                  contentStyle={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border-default)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', color: 'var(--text-primary)' }} 
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  formatter={(v: any) => formatCurrency(Number(v || 0))} 
                 />
                 <Bar dataKey="value" radius={[15, 15, 0, 0]}>
                   {agingBuckets.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 3 ? '#f43f5e' : '#4f46e5'} fillOpacity={0.8 + (index * 0.05)} />
+                    <Cell key={`cell-${index}`} fill={index === 3 ? 'var(--status-error)' : 'var(--brand-primary)'} fillOpacity={0.8 + (index * 0.05)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -115,7 +117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
 
         {/* GRÁFICO: COMPOSIÇÃO DE CARTEIRA (MIX) */}
         <div className="premium-card p-12 rounded-[4rem] shadow-2xl lg:col-span-1 relative overflow-hidden">
-          <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-8 uppercase tracking-tighter italic">Composição do Risco</h3>
+          <h3 className="text-2xl font-black text-[var(--text-primary)] mb-8 uppercase tracking-tighter italic">Composição do Risco</h3>
           <div className="h-64 mb-10">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -128,29 +130,33 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, i
                     dataKey="value"
                 >
                   {portfolioMix.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--brand-primary)' : 'var(--status-error)'} stroke="none" />
                   ))}
-                  {isEmpty && <Cell fill="#334155" />}
+                  {isEmpty && <Cell fill="var(--border-default)" />}
                 </Pie>
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border-default)', borderRadius: '16px', color: 'var(--text-primary)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  formatter={(v: any) => formatCurrency(Number(v || 0))} 
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
           
           <div className="space-y-4">
-             {portfolioMix.map((item) => (
-                <div key={item.name} className="flex justify-between items-center p-5 rounded-[2rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:scale-[1.02] transition-transform">
+             {portfolioMix.map((item, index) => (
+                <div key={item.name} className="flex justify-between items-center p-5 rounded-[2rem] bg-[var(--surface-background)] border border-[var(--border-default)] hover:scale-[1.02] transition-transform">
                     <div className="flex items-center gap-4">
-                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></div>
-                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">{item.name}</span>
+                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: index === 0 ? 'var(--brand-primary)' : 'var(--status-error)'}}></div>
+                        <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-wider">{item.name}</span>
                     </div>
-                    <span className="text-sm font-black italic tabular-nums text-slate-900 dark:text-white">{formatCurrency(item.value)}</span>
+                    <span className="text-sm font-black italic tabular-nums text-[var(--text-primary)]">{formatCurrency(item.value)}</span>
                 </div>
              ))}
              {isEmpty && (
                 <div className="py-10 text-center space-y-4">
-                   <FeatherIcon name="package" className="w-12 h-12 mx-auto text-slate-200 dark:text-slate-800" />
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Aguardando Fluxo de Dados</p>
+                   <FeatherIcon name="package" className="w-12 h-12 mx-auto text-[var(--border-default)]" />
+                   <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.4em]">Aguardando Fluxo de Dados</p>
                 </div>
              )}
           </div>

@@ -36,6 +36,7 @@ export interface Contract {
   managerId: string;
   region: string;
   originSheet?: 'Geral' | 'Cartoes';
+  eficiencia?: number; // Eficiência do contrato/gestor
   timestamp: string; // Data da carga
 }
 
@@ -122,3 +123,20 @@ export interface AutomationLog {
   actionType: ActionType;
   description: string;
 }
+
+export const VIEWS = {
+  DASHBOARD: 'Dashboard Principal',
+  ANALISE_DINAMICA: 'Análise Dinâmica',
+  IMPORTACAO: 'Importação',
+  INSIGHTS_IA: 'Insights de IA',
+  DETALHAMENTO: 'Detalhamento',
+  GESTAO_TAREFAS: 'Gestão de Tarefas',
+  NOTIFICACOES: 'Notificações',
+  CARTOES_ATRASO: 'Cartões em Atraso',
+  CALCULADORA: 'Calculadora',
+  ADMINISTRACAO: 'Administração',
+  DESIGN_SYSTEM: 'Design System',
+} as const;
+
+export type ViewName = (typeof VIEWS)[keyof typeof VIEWS];
+

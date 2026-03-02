@@ -134,6 +134,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               </>
             )}
           </button>
+
+          <button 
+            type="button"
+            onClick={() => { setEmail('admin@admin'); setPassword('123'); }}
+            className="w-full py-4 text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-400 transition-colors border border-white/5 rounded-2xl"
+          >
+            Preencher Acesso Master
+          </button>
         </form>
 
         <div className="mt-12 p-8 bg-blue-500/5 rounded-[2.5rem] border border-white/5 space-y-4">

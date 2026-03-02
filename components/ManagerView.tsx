@@ -61,7 +61,7 @@ const ManagerView: React.FC<ManagerViewProps> = ({ contracts, isDarkMode }) => {
               cursor={{fill: 'rgba(239, 68, 68, 0.1)'}} 
               contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, color: tooltipText }} 
               itemStyle={{ color: tooltipText }}
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(value: any) => formatCurrency(Number(value || 0))}
             />
             <Legend wrapperStyle={{ color: axisColor }} />
             <Bar dataKey="Saldo Devedor" fill="#ef4444" />

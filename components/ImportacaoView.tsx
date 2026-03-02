@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import FileImporter from './FileImporter';
 import { Contract } from '../types';
 import FeatherIcon from './FeatherIcon';
-import { useApp } from '../context/AppContext';
+import { useApp, ImportSyncResult } from '../context/AppContext';
 
 interface ImportacaoViewProps {
-  onDataImported: (data: Contract[]) => void;
+  onDataImported: (data: Contract[], result: ImportSyncResult) => void;
   contractCount: number;
 }
 

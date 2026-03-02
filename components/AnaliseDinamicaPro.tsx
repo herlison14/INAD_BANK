@@ -162,7 +162,7 @@ const AnaliseDinamicaPro: React.FC<{ contracts: Contract[] }> = ({ contracts }) 
           <h3 className="text-sm font-black text-slate-800 dark:text-white mb-4 uppercase tracking-widest">
             Performance Ranking
           </h3>
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar scroll-smooth">
             {chartData.map((manager, index) => (
               <div key={manager.fullName} className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">

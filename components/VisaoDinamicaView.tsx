@@ -92,7 +92,7 @@ const VisaoDinamicaView: React.FC<VisaoDinamicaViewProps> = ({ contracts, isDark
                 <YAxis stroke={axisColor} fontSize={10} axisLine={false} tickLine={false} tickFormatter={(v) => activeMetric === 'saldo' ? `R$${(v/1000).toFixed(0)}k` : v} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', backgroundColor: isDarkMode ? '#0f172a' : '#fff' }}
-                  formatter={(v: number) => activeMetric === 'saldo' ? formatCurrency(v) : `${v} Contratos`}
+                  formatter={(v: any) => activeMetric === 'saldo' ? formatCurrency(Number(v || 0)) : `${v} Contratos`}
                 />
                 <Bar dataKey={activeMetric === 'saldo' ? 'saldo' : 'count'} radius={[10, 10, 0, 0]}>
                   {managerComparison.map((entry, index) => (
@@ -121,7 +121,7 @@ const VisaoDinamicaView: React.FC<VisaoDinamicaViewProps> = ({ contracts, isDark
                     <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="none" />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <Tooltip formatter={(v: any) => formatCurrency(Number(v || 0))} />
               </PieChart>
             </ResponsiveContainer>
           </div>

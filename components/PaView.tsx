@@ -61,7 +61,7 @@ const PaView: React.FC<PaViewProps> = ({ contracts, isDarkMode }) => {
               cursor={{fill: 'rgba(59, 130, 246, 0.1)'}} 
               contentStyle={{ backgroundColor: tooltipBg, border: `1px solid ${tooltipBorder}`, color: tooltipText }} 
               itemStyle={{ color: tooltipText }}
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(value: any) => formatCurrency(Number(value || 0))}
             />
             <Legend wrapperStyle={{ color: axisColor }} />
             <Bar dataKey="Saldo Devedor" fill="#3b82f6" />

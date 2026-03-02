@@ -350,7 +350,34 @@ const AutomacoesView: React.FC<AutomacoesViewProps> = ({ rules, logs, onToggleRu
             </nav>
         </div>
 
-        {activeTab === 'regras' ? renderRulesTab() : renderLogsTab()}
+        {activeTab === 'regras' ? (
+          <div className="space-y-8">
+            {/* Diretrizes de Risco (Conforme solicitado pelo Especialista Sênior) */}
+            <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-10 opacity-10">
+                  <FeatherIcon name="shield" className="w-32 h-32" />
+               </div>
+               <div className="relative z-10">
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-6">Diretrizes de Risco & Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                     <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20">
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-70">Régua 0-30</p>
+                        <p className="text-sm font-bold">Régua Preventiva: SMS e Push.</p>
+                     </div>
+                     <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20">
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-70">Ação 31-60</p>
+                        <p className="text-sm font-bold">Ação Corretiva: Renegociação via IA.</p>
+                     </div>
+                     <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20">
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-70">Crítico 90+</p>
+                        <p className="text-sm font-bold">Crítico: Ajuizamento e Alerta Gerencial.</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            {renderRulesTab()}
+          </div>
+        ) : renderLogsTab()}
       </div>
     </div>
   );

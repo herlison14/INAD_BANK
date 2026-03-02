@@ -13,26 +13,26 @@ const THRESHOLDS = {
 const BOXES_DATA = [
   {
     key: 'cash',
-    title: "CASH RECOVERY (LIQUIDADO)",
-    subtitle: "CONSOLIDADO Y+I",
+    title: "SALDO DEVEDOR TOTAL",
+    subtitle: "SOMATÓRIA COLUNA Y",
     icon: "dollar-sign",
     color: "text-emerald-500",
     bg: "bg-emerald-500/10",
-    description: "Indica o capital que efetivamente entrou no caixa (liquidações reais). É o KPI de sucesso final, separando promessas de pagamento de dinheiro recuperado de fato."
+    description: "Somatória Contábil da Coluna Y (A partir da linha 2). Representa o montante total de exposição financeira sob gestão."
   },
   {
     key: 'roll',
-    title: "ROLL-FORWARD RATE",
-    subtitle: "ALERTA DE FLUXO",
-    icon: "activity",
+    title: "TOTAL DE LINHAS PROCESSADAS",
+    subtitle: "CONTAGEM DE REGISTROS",
+    icon: "list",
     color: "text-blue-500",
     bg: "bg-blue-500/10",
-    description: "Mede a degradação da carteira: quantos clientes 'rolaram' para uma faixa de atraso mais grave. Se ultrapassar 15%, a estratégia de cobrança precisa de revisão urgente."
+    description: "Contagem total de linhas processadas da planilha (Excluindo cabeçalho)."
   },
   {
     key: 'pcld',
-    title: "PROVISÃO PCLD ACUMULADA",
-    subtitle: "BASE COLUNA Z",
+    title: "PROVISÃO PCLD (Z)",
+    subtitle: "SOMATÓRIA COLUNA Z",
     icon: "shield",
     color: "text-purple-500",
     bg: "bg-purple-500/10",
@@ -40,31 +40,37 @@ const BOXES_DATA = [
   },
   {
     key: 'loss',
-    title: "LOSS EXPECTANCY (90D+)",
-    subtitle: "INTERVENÇÃO IMEDIATA",
+    title: "EXPOSIÇÃO DE RISCO",
+    subtitle: "CÁLCULO PROJETADO",
     icon: "alert-circle",
     color: "text-red-500",
     bg: "bg-red-500/10",
-    description: "Valor projetado de perda definitiva para contratos com atraso superior a 90 dias sem acordo. Requer ação jurídica ou descontos agressivos (haircut)."
+    description: "Cálculo de risco baseado no saldo real (15% do saldo devedor total)."
   }
 ];
 
-export const DashboardKpiGrid: React.FC<{ contratos: Contract[] }> = ({ contratos }) => {
+export const DashboardKpiGrid: React.FC<{ contratos: Contract[], onCardClick?: (key: string) => void }> = ({ contratos, onCardClick }) => {
   const [infoOpen, setInfoOpen] = useState<string | null>(null);
 
-  // Lógica de Processamento de Dados
+  // Lógica de Processamento de Dados (Somas Reais Colunas Y e Z)
   const processedMetrics = useMemo(() => {
-    const totalRecuperado = contratos.filter(c => c.status === 'Resolvido').reduce((acc, c) => acc + (c.valorPago || 0), 0);
-    const totalExposicao = contratos.reduce((acc, c) => acc + (c.saldoDevedor || 0), 0);
+    // 1. Soma Real da Coluna Y (Saldo Devedor / Exposure)
+    const totalSaldoY = contratos.reduce((acc, c) => acc + (c.saldoDevedor || 0), 0);
     
-    // Simulação do Roll-Rate para ativação do batimento (exemplo em 17.5% conforme estratégia)
-    const rollRate = 17.5; 
+    // 2. Soma Real da Coluna Z (Provisão PCLD)
+    const totalPcldZ = contratos.reduce((acc, c) => acc + (c.valorProvisionado || 0), 0);
+    
+    // 3. Contagem de Linhas (Excluindo cabeçalho)
+    const totalLinhas = contratos.length;
+
+    // 4. Exposição de Risco: Cálculo de risco baseado no saldo real (15% conforme solicitado)
+    const lossExpectancy = totalSaldoY * 0.15;
 
     return {
-      cash: { val: `R$ ${totalRecuperado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, critical: false },
-      roll: { val: `${rollRate}%`, critical: rollRate > THRESHOLDS.ROLL_FORWARD_MAX },
-      pcld: { val: `R$ ${(totalExposicao * 0.12).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, critical: false },
-      loss: { val: `R$ ${contratos.filter(c => c.daysOverdue > 90).reduce((acc, c) => acc + c.saldoDevedor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, critical: false }
+      cash: { val: `R$ ${totalSaldoY.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, critical: false },
+      roll: { val: `${totalLinhas}`, critical: totalLinhas > 1000 },
+      pcld: { val: `R$ ${totalPcldZ.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, critical: false },
+      loss: { val: `R$ ${lossExpectancy.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, critical: lossExpectancy > THRESHOLDS.LOSS_EXPECTANCY_WARN }
     };
   }, [contratos]);
 
@@ -79,26 +85,27 @@ export const DashboardKpiGrid: React.FC<{ contratos: Contract[] }> = ({ contrato
             // Efeito de Batimento (Pulse) se estiver crítico
             animate={metric.critical ? { 
               boxShadow: ["0px 0px 0px rgba(239, 68, 68, 0)", "0px 0px 25px rgba(239, 68, 68, 0.4)", "0px 0px 0px rgba(239, 68, 68, 0)"],
-              borderColor: ["#1e293b", "#ef4444", "#1e293b"]
+              borderColor: ["var(--border-default)", "var(--status-error)", "var(--border-default)"]
             } : {}}
             transition={{ repeat: Infinity, duration: 1.5 }}
-            className={`relative bg-slate-900/60 border ${metric.critical ? 'border-red-500' : 'border-slate-800'} p-6 rounded-[2.5rem] backdrop-blur-xl group`}
+            onClick={() => onCardClick && onCardClick(box.key)}
+            className={`relative bg-[var(--surface-container)] border ${metric.critical ? 'border-[var(--status-error)]' : 'border-[var(--border-default)]'} p-6 rounded-[2.5rem] backdrop-blur-xl group cursor-pointer hover:bg-[var(--surface-elevated)] transition-colors shadow-sm`}
           >
             {/* Linha Superior */}
             <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-2xl ${metric.critical ? 'bg-red-500/20 text-red-500' : `${box.bg} ${box.color}`}`}>
+              <div className={`p-3 rounded-2xl ${metric.critical ? 'bg-[var(--status-error)]/20 text-[var(--status-error)]' : `bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]`}`}>
                 <FeatherIcon name={metric.critical ? "alert-triangle" : box.icon} className="w-5 h-5" />
               </div>
               
               <div className="flex items-center gap-2">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${metric.critical ? 'text-red-500' : box.color}`}>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${metric.critical ? 'text-[var(--status-error)]' : 'text-[var(--brand-primary)]'}`}>
                   {metric.critical ? "CRÍTICO" : box.subtitle}
                 </span>
                 
                 {/* Botão de Interrogação */}
                 <button 
-                  onClick={() => setInfoOpen(infoOpen === box.key ? null : box.key)}
-                  className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-800 text-slate-400 hover:text-white transition-all"
+                  onClick={(e) => { e.stopPropagation(); setInfoOpen(infoOpen === box.key ? null : box.key); }}
+                  className="w-6 h-6 rounded-full flex items-center justify-center bg-[var(--surface-background)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all border border-[var(--border-default)]"
                 >
                   <span className="text-xs font-bold">?</span>
                 </button>
@@ -106,8 +113,8 @@ export const DashboardKpiGrid: React.FC<{ contratos: Contract[] }> = ({ contrato
             </div>
 
             {/* Valores Principais */}
-            <p className="text-slate-500 text-[10px] font-bold uppercase mb-1 tracking-tight">{box.title}</p>
-            <h3 className={`text-2xl font-black font-mono italic tracking-tighter ${metric.critical ? 'text-red-500' : 'text-white'}`}>
+            <p className="text-[var(--text-secondary)] text-[10px] font-bold uppercase mb-1 tracking-tight">{box.title}</p>
+            <h3 className={`text-2xl font-black font-mono italic tracking-tighter ${metric.critical ? 'text-[var(--status-error)]' : 'text-[var(--text-primary)]'}`}>
               {metric.val}
             </h3>
 
@@ -118,15 +125,15 @@ export const DashboardKpiGrid: React.FC<{ contratos: Contract[] }> = ({ contrato
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute inset-0 z-20 bg-slate-900 p-6 rounded-[2.5rem] flex flex-col justify-center"
+                  className="absolute inset-0 z-20 bg-[var(--surface-elevated)] p-6 rounded-[2.5rem] flex flex-col justify-center border border-[var(--brand-primary)]/30"
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${box.color}`}>{box.title}</span>
-                    <button onClick={() => setInfoOpen(null)} className="text-slate-400 hover:text-white">
+                    <span className={`text-[10px] font-black uppercase tracking-widest text-[var(--brand-primary)]`}>{box.title}</span>
+                    <button onClick={(e) => { e.stopPropagation(); setInfoOpen(null); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                        <FeatherIcon name="x" className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-xs text-slate-300 leading-relaxed">
+                  <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                     {box.description}
                   </p>
                 </motion.div>

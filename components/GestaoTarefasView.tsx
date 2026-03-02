@@ -99,7 +99,7 @@ const GestaoTarefasView: React.FC<GestaoTarefasViewProps> = ({ tasks, contracts,
             Exportar Excel
           </button>
         </div>
-        <div className="space-y-3 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-3 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar scroll-smooth">
           {sortedTasks.map(t => (
             <div key={t.id} onClick={() => setTaskAtiva(t)}
               className={`p-5 rounded-3xl border-2 transition-all cursor-pointer ${taskAtiva?.id === t.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 hover:border-blue-200'}`}>
