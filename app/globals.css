@@ -10,33 +10,33 @@
 }
 
 :root {
-  /* Light Mode Tokens */
+  /* Light Mode Tokens - High Contrast */
   --surface-background: #F8FAFF;
   --surface-container: #FFFFFF;
   --surface-elevated: #FFFFFF;
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
+  --text-primary: #0F172A;      /* Slate 900 for maximum readability */
+  --text-secondary: #475569;    /* Slate 600 */
   --border-default: #E2E8F0;
-  --status-error: #EF4444;
-  --status-success: #10B981;
-  --status-warning: #F59E0B;
+  --status-error: #DC2626;      /* Red 600 */
+  --status-success: #059669;    /* Emerald 600 */
+  --status-warning: #D97706;    /* Amber 600 */
   --brand-primary: #2563EB;
   --brand-accent: #4F46E5;
 }
 
 .dark {
-  /* Dark Mode Tokens (Professional & Accessible) */
-  --surface-background: #121212; /* Base Gray, not pure black */
-  --surface-container: #1E1E1E;  /* Level 1 Elevation */
-  --surface-elevated: #2C2C2C;   /* Level 2 Elevation */
-  --text-primary: #F5F5F5;      /* Soft white to avoid halo */
-  --text-secondary: #A0A0A0;    /* Muted secondary text */
-  --border-default: #333333;    /* Subtle borders */
-  --status-error: #F87171;      /* Desaturated error */
-  --status-success: #34D399;    /* Desaturated success */
-  --status-warning: #FBBF24;    /* Desaturated warning */
-  --brand-primary: #60A5FA;     /* Desaturated action color */
-  --brand-accent: #818CF8;      /* Desaturated accent color */
+  /* Dark Mode Tokens - Optimized for Contrast & OLED */
+  --surface-background: #0A0A0A; /* Deeper gray for better contrast */
+  --surface-container: #171717;  /* Level 1 Elevation */
+  --surface-elevated: #262626;   /* Level 2 Elevation */
+  --text-primary: #FFFFFF;      /* Pure white for maximum contrast */
+  --text-secondary: #D1D5DB;    /* Gray 300 - High contrast secondary text */
+  --border-default: #262626;    /* Subtle but visible */
+  --status-error: #F87171;      /* Accessible red */
+  --status-success: #34D399;    /* Accessible emerald */
+  --status-warning: #FBBF24;    /* Accessible amber */
+  --brand-primary: #60A5FA;     /* Bright blue */
+  --brand-accent: #818CF8;      /* Bright indigo */
 }
 
 /* Custom Scrollbar */

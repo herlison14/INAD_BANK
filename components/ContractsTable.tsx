@@ -95,20 +95,20 @@ const ContractsTable: React.FC<ContractsTableProps> = ({ contracts, initialSearc
 
   return (
     <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--surface-container)] p-6 rounded-[2.5rem] border border-[var(--border-default)]">
             <div className="relative flex-grow max-w-md">
                 <input
                     type="text"
                     placeholder="Buscar Sócio, CPF ou Contrato..."
                     value={searchTerm}
-                    className="w-full bg-white dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-6 py-3.5 text-sm font-bold outline-none focus:border-blue-500 transition-all"
+                    className="w-full bg-[var(--surface-background)] border-2 border-[var(--border-default)] rounded-2xl px-6 py-3.5 text-sm font-bold outline-none focus:border-[var(--brand-primary)] transition-all text-[var(--text-primary)]"
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
             {userRole === UserRole.Admin && (
                 <button
                     onClick={handleExportCSV}
-                    className="bg-black dark:bg-white text-white dark:text-black text-[10px] font-black py-4 px-8 rounded-2xl flex items-center gap-3 transition-all hover:scale-105 uppercase tracking-widest shadow-xl"
+                    className="bg-[var(--text-primary)] text-[var(--surface-background)] text-[10px] font-black py-4 px-8 rounded-2xl flex items-center gap-3 transition-all hover:scale-105 uppercase tracking-widest shadow-xl"
                 >
                     <FeatherIcon name="upload" className="h-4 w-4 rotate-180" />
                     Exportar Detalhamento
@@ -116,36 +116,36 @@ const ContractsTable: React.FC<ContractsTableProps> = ({ contracts, initialSearc
             )}
         </div>
 
-      <div className="overflow-x-auto rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900">
+      <div className="overflow-x-auto rounded-[3rem] border border-[var(--border-default)] shadow-2xl bg-[var(--surface-container)]">
         <table className="w-full text-sm text-left">
-          <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
+          <thead className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest bg-[var(--surface-background)]/50 border-b border-[var(--border-default)]">
             <tr>
               {['PA', 'Gerente', 'Sócio', 'CPF', 'Contrato', 'Atraso', 'Saldo Devedor', 'Telefones'].map((label, idx) => (
                 <th key={idx} className="px-8 py-6 font-black">{label}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-            {sortedContracts.map((c) => (
-              <tr key={c.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/5 transition-colors group">
-                <td className="px-8 py-6 text-xs font-bold text-slate-500 uppercase">{c.pa}</td>
-                <td className="px-8 py-6 text-[11px] font-semibold text-slate-400">{c.gerente}</td>
-                <td className="px-8 py-6 text-sm font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{c.socio}</td>
-                <td className="px-8 py-6 font-mono text-[10px] text-slate-400">{maskCpfCnpj(c.cpfCnpj, userRole)}</td>
-                <td className="px-8 py-6 text-xs font-black text-blue-600 dark:text-blue-400 cursor-pointer hover:underline" onClick={() => onNavigateToDetails && onNavigateToDetails(c.id)}>{c.id}</td>
+          <tbody className="divide-y divide-[var(--border-default)]/50">
+            {sortedContracts.map((c, index) => (
+              <tr key={`${c.id}-${index}`} className="hover:bg-[var(--brand-primary)]/5 transition-colors group">
+                <td className="px-8 py-6 text-xs font-bold text-[var(--text-secondary)] uppercase">{c.pa}</td>
+                <td className="px-8 py-6 text-[11px] font-semibold text-[var(--text-secondary)]/70">{c.gerente}</td>
+                <td className="px-8 py-6 text-sm font-black text-[var(--text-primary)] uppercase italic tracking-tight">{c.socio}</td>
+                <td className="px-8 py-6 font-mono text-[10px] text-[var(--text-secondary)]">{maskCpfCnpj(c.cpfCnpj, userRole)}</td>
+                <td className="px-8 py-6 text-xs font-black text-[var(--brand-primary)] cursor-pointer hover:underline" onClick={() => onNavigateToDetails && onNavigateToDetails(c.id)}>{c.id}</td>
                 <td className="px-8 py-6 text-center">
-                   <span className={`px-3 py-1 rounded-lg text-[10px] font-black ${c.daysOverdue > 90 ? 'bg-red-500 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                   <span className={`px-3 py-1 rounded-lg text-[10px] font-black ${c.daysOverdue > 90 ? 'bg-[var(--status-error)] text-white' : 'bg-[var(--surface-elevated)] text-[var(--text-secondary)]'}`}>
                       {c.daysOverdue} d
                    </span>
                 </td>
                 <td 
-                    className="px-8 py-6 font-mono font-black text-blue-600 dark:text-blue-400 cursor-pointer hover:underline"
+                    className="px-8 py-6 font-mono font-black text-[var(--brand-primary)] cursor-pointer hover:underline"
                     onClick={() => onSimulateRenegotiation && onSimulateRenegotiation(c.saldoDevedor)}
                     title="Clique para simular renegociação"
                 >
                     {c.saldoDevedor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </td>
-                <td className="px-8 py-6 font-mono text-[10px] text-slate-400">{c.phone || 'N/A'}</td>
+                <td className="px-8 py-6 font-mono text-[10px] text-[var(--text-secondary)]">{c.phone || 'N/A'}</td>
               </tr>
             ))}
           </tbody>

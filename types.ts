@@ -35,7 +35,7 @@ export interface Contract {
   managerEmail: string; // Adicionado para RLS
   managerId: string;
   region: string;
-  originSheet?: 'Geral' | 'Cartoes';
+  originSheet?: 'Geral' | 'Cartoes' | 'Prejuizo';
   eficiencia?: number; // Eficiência do contrato/gestor
   timestamp: string; // Data da carga
 }
@@ -130,12 +130,12 @@ export const VIEWS = {
   IMPORTACAO: 'Importação',
   INSIGHTS_IA: 'Insights de IA',
   DETALHAMENTO: 'Detalhamento',
-  GESTAO_TAREFAS: 'Gestão de Tarefas',
+  GESTAO_TAREFAS: 'Gestao de Tarefas',
   NOTIFICACOES: 'Notificações',
   CARTOES_ATRASO: 'Cartões em Atraso',
+  PREJUIZO: 'Prejuízo',
   CALCULADORA: 'Calculadora',
   ADMINISTRACAO: 'Administração',
-  DESIGN_SYSTEM: 'Design System',
 } as const;
 
 export type ViewName = (typeof VIEWS)[keyof typeof VIEWS];

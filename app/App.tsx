@@ -26,11 +26,11 @@ import DetalhamentoView from '../components/DetalhamentoView';
 import GestaoTarefasView from '../components/GestaoTarefasView';
 import NotificacoesView from '../components/NotificacoesView';
 import CartoesAtrasoView from '../components/CartoesAtrasoView';
+import PrejuizoView from '../components/PrejuizoView';
 import VisaoDinamicaView from '../components/VisaoDinamicaView';
 import CalculadoraRenegociacaoView from '../components/CalculadoraRenegociacaoView';
 import AnaliseDinamicaView from '../components/AnaliseDinamicaView';
 import AnaliseDinamicaPro from '../components/AnaliseDinamicaPro';
-import DesignSystemView from '../components/DesignSystemView';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SISTEMA DE SEGURANÇA
@@ -40,11 +40,11 @@ const ROLE_PERMISSIONS: Record<UserRole, ViewName[]> = {
   [UserRole.Coordenador]: [
     VIEWS.DASHBOARD, VIEWS.ANALISE_DINAMICA, VIEWS.IMPORTACAO, VIEWS.INSIGHTS_IA,
     VIEWS.DETALHAMENTO, VIEWS.GESTAO_TAREFAS, VIEWS.NOTIFICACOES,
-    VIEWS.CARTOES_ATRASO, VIEWS.CALCULADORA, VIEWS.DESIGN_SYSTEM,
+    VIEWS.CARTOES_ATRASO, VIEWS.PREJUIZO, VIEWS.CALCULADORA,
   ],
   [UserRole.Gerente]: [
     VIEWS.DASHBOARD, VIEWS.DETALHAMENTO, VIEWS.GESTAO_TAREFAS,
-    VIEWS.NOTIFICACOES, VIEWS.CARTOES_ATRASO, VIEWS.CALCULADORA, VIEWS.DESIGN_SYSTEM,
+    VIEWS.NOTIFICACOES, VIEWS.CARTOES_ATRASO, VIEWS.PREJUIZO, VIEWS.CALCULADORA,
   ],
 };
 
@@ -58,9 +58,9 @@ const AccessDenied: React.FC<{ role: UserRole }> = ({ role }) => (
     <div className="w-20 h-20 rounded-3xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-6">
       <FeatherIcon name="lock" className="w-9 h-9 text-red-500" />
     </div>
-    <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Acesso Restrito</h2>
-    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">
-      Seu perfil <span className="font-bold text-slate-700 dark:text-slate-300">({role})</span> não
+    <h2 className="text-2xl font-black text-[var(--text-primary)] mb-2">Acesso Restrito</h2>
+    <p className="text-[var(--text-secondary)] text-sm max-w-sm">
+      Seu perfil <span className="font-bold text-[var(--text-primary)]">({role})</span> não
       tem permissão para acessar esta área.
     </p>
   </motion.div>
@@ -78,24 +78,24 @@ const SyncToast: React.FC<{ result: ImportSyncResult; onClose: () => void }> = (
   >
     <div className="flex items-start justify-between mb-3">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
-          <FeatherIcon name="check-circle" className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+        <div className="w-8 h-8 rounded-xl bg-[var(--status-success)]/10 flex items-center justify-center">
+          <FeatherIcon name="check-circle" className="w-4 h-4 text-[var(--status-success)]" />
         </div>
-        <span className="font-black text-slate-800 dark:text-white text-sm">Sincronização Completa</span>
+        <span className="font-black text-[var(--text-primary)] text-sm">Sincronização Completa</span>
       </div>
-      <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+      <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
         <FeatherIcon name="x" className="w-4 h-4" />
       </button>
     </div>
     <div className="space-y-2">
       {[
-        { icon: 'file-text', label: 'Contratos importados', value: result.inserted, color: 'text-blue-500' },
-        { icon: 'check-square', label: 'Tarefas geradas', value: result.tasksGenerated, color: 'text-violet-500' },
-        { icon: 'bell', label: 'Notificações criadas', value: result.notificationsGenerated, color: 'text-orange-500' },
-        ...(result.duplicates > 0 ? [{ icon: 'copy', label: 'Duplicatas ignoradas', value: result.duplicates, color: 'text-slate-400' }] : []),
+        { icon: 'file-text', label: 'Contratos importados', value: result.inserted, color: 'text-[var(--brand-primary)]' },
+        { icon: 'check-square', label: 'Tarefas geradas', value: result.tasksGenerated, color: 'text-[var(--brand-accent)]' },
+        { icon: 'bell', label: 'Notificações criadas', value: result.notificationsGenerated, color: 'text-[var(--status-warning)]' },
+        ...(result.duplicates > 0 ? [{ icon: 'copy', label: 'Duplicatas ignoradas', value: result.duplicates, color: 'text-[var(--text-secondary)]' }] : []),
       ].map((item) => (
         <div key={item.label} className="flex items-center justify-between text-xs">
-          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+          <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
             <FeatherIcon name={item.icon} className={`w-3.5 h-3.5 ${item.color}`} />
             {item.label}
           </span>
@@ -103,7 +103,7 @@ const SyncToast: React.FC<{ result: ImportSyncResult; onClose: () => void }> = (
         </div>
       ))}
     </div>
-    <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+    <p className="text-xs text-[var(--text-secondary)] mt-3 pt-3 border-t border-[var(--border-default)]">
       Tarefas e Notificações atualizadas automaticamente.
     </p>
   </motion.div>
@@ -126,9 +126,9 @@ const MOCK_OPERADORES: Operador[] = [
 ];
 
 const StatCard: React.FC<{ label: string; value: number; icon: string; color: string }> = ({ label, value, icon, color }) => (
-  <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 flex items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-700">
+  <div className="bg-[var(--surface-container)] rounded-2xl p-5 flex items-center gap-4 shadow-sm border border-[var(--border-default)]">
     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}><FeatherIcon name={icon} className="w-5 h-5" /></div>
-    <div><p className="text-2xl font-black text-slate-800 dark:text-white">{value}</p><p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">{label}</p></div>
+    <div><p className="text-2xl font-black text-[var(--text-primary)]">{value}</p><p className="text-xs text-[var(--text-secondary)] uppercase tracking-wide">{label}</p></div>
   </div>
 );
 
@@ -275,17 +275,17 @@ const AdministracaoView: React.FC = () => {
     <div className="space-y-8">
       <AnimatePresence>{toast && (<motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-bold flex items-center gap-2 ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}><FeatherIcon name={toast.type === 'success' ? 'check-circle' : 'trash-2'} className="w-4 h-4" />{toast.message}</motion.div>)}</AnimatePresence>
       <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-black text-slate-800 dark:text-white">Administração</h1><p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Gerencie operadores, cargos e permissões</p></div>
+        <div><h1 className="text-3xl font-black text-[var(--text-primary)]">Administração</h1><p className="text-[var(--text-secondary)] mt-1 text-sm">Gerencie operadores, cargos e permissões</p></div>
         <div className="flex gap-3">
-          <button onClick={handleExportAuditLogs} className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm font-black rounded-xl shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-700"><FeatherIcon name="download" className="w-4 h-4" />Exportar Logs</button>
-          <button onClick={() => { setEditingOperador(null); setForm(INITIAL_FORM); setErrors({}); setIsModalOpen(true); }} className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105"><FeatherIcon name="user-plus" className="w-4 h-4" />Novo Operador</button>
+          <button onClick={handleExportAuditLogs} className="flex items-center gap-2 px-5 py-3 bg-[var(--surface-container)] border border-[var(--border-default)] text-[var(--text-primary)] text-sm font-black rounded-xl shadow-sm transition-all hover:bg-[var(--surface-elevated)]"><FeatherIcon name="download" className="w-4 h-4" />Exportar Logs</button>
+          <button onClick={() => { setEditingOperador(null); setForm(INITIAL_FORM); setErrors({}); setIsModalOpen(true); }} className="flex items-center gap-2 px-5 py-3 bg-[var(--brand-primary)] hover:opacity-90 text-white text-sm font-black rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105"><FeatherIcon name="user-plus" className="w-4 h-4" />Novo Operador</button>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {(Object.values(UserRole) as UserRole[]).map((role) => (
-          <div key={role} className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="flex items-center gap-3 mb-3"><div className={`w-9 h-9 rounded-xl flex items-center justify-center ${ROLE_COLORS[role]}`}><FeatherIcon name={ROLE_ICON[role]} className="w-4 h-4" /></div><span className="font-black text-slate-800 dark:text-white text-sm">{ROLE_LABELS[role]}</span></div>
-            <ul className="space-y-1.5">{(Object.values(VIEWS) as ViewName[]).map((view) => { const ok = canAccess(role, view); return (<li key={view} className={`flex items-center gap-2 text-xs ${ok ? 'text-slate-600 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600 line-through'}`}><FeatherIcon name={ok ? 'check' : 'x'} className={`w-3 h-3 shrink-0 ${ok ? 'text-emerald-500' : 'text-red-400'}`} />{view}</li>); })}</ul>
+          <div key={role} className="bg-[var(--surface-container)] rounded-2xl p-5 border border-[var(--border-default)] shadow-sm">
+            <div className="flex items-center gap-3 mb-3"><div className={`w-9 h-9 rounded-xl flex items-center justify-center ${ROLE_COLORS[role]}`}><FeatherIcon name={ROLE_ICON[role]} className="w-4 h-4" /></div><span className="font-black text-[var(--text-primary)] text-sm">{ROLE_LABELS[role]}</span></div>
+            <ul className="space-y-1.5">{(Object.values(VIEWS) as ViewName[]).map((view) => { const ok = canAccess(role, view); return (<li key={view} className={`flex items-center gap-2 text-xs ${ok ? 'text-[var(--text-secondary)]' : 'text-[var(--text-secondary)]/30 line-through'}`}><FeatherIcon name={ok ? 'check' : 'x'} className={`w-3 h-3 shrink-0 ${ok ? 'text-[var(--status-success)]' : 'text-[var(--status-error)]'}`} />{view}</li>); })}</ul>
           </div>
         ))}
       </div>
@@ -296,23 +296,23 @@ const AdministracaoView: React.FC = () => {
         <StatCard label="Admins" value={stats.admins} icon="shield" color="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400" />
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1"><FeatherIcon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por nome, e-mail ou PA..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" /></div>
-        <div className="flex gap-2 flex-wrap">{(['Todos', ...Object.values(UserRole)] as (UserRole | 'Todos')[]).map((r) => (<button key={r} onClick={() => setFilterRole(r)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filterRole === r ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800'}`}>{r === 'Todos' ? 'Todos' : ROLE_LABELS[r as UserRole]}</button>))}</div>
+        <div className="relative flex-1"><FeatherIcon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-secondary)]" /><input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por nome, e-mail ou PA..." className="w-full pl-11 pr-4 py-3 rounded-xl border border-[var(--border-default)] bg-[var(--surface-container)] text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] transition-all" /></div>
+        <div className="flex gap-2 flex-wrap">{(['Todos', ...Object.values(UserRole)] as (UserRole | 'Todos')[]).map((r) => (<button key={r} onClick={() => setFilterRole(r)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border ${filterRole === r ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--surface-container)]'}`}>{r === 'Todos' ? 'Todos' : ROLE_LABELS[r as UserRole]}</button>))}</div>
       </div>
-      <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-        {filteredOperadores.length === 0 ? (<div className="flex flex-col items-center justify-center py-20 text-slate-400"><FeatherIcon name="users" className="w-12 h-12 mb-4 opacity-30" /><p className="text-sm font-medium">Nenhum operador encontrado</p></div>) : (
+      <div className="bg-[var(--surface-container)] rounded-3xl shadow-sm border border-[var(--border-default)] overflow-hidden">
+        {filteredOperadores.length === 0 ? (<div className="flex flex-col items-center justify-center py-20 text-[var(--text-secondary)]"><FeatherIcon name="users" className="w-12 h-12 mb-4 opacity-30" /><p className="text-sm font-medium">Nenhum operador encontrado</p></div>) : (
           <table className="w-full">
-            <thead><tr className="border-b border-slate-100 dark:border-slate-700">{['Operador', 'Cargo', 'PA', 'Cadastro', 'Status', 'Ações'].map((h) => (<th key={h} className={`px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest ${h === 'Ações' ? 'text-right' : 'text-left'}`}>{h}</th>))}</tr></thead>
+            <thead><tr className="border-b border-[var(--border-default)]">{['Operador', 'Cargo', 'PA', 'Cadastro', 'Status', 'Ações'].map((h) => (<th key={h} className={`px-6 py-4 text-xs font-black text-[var(--text-secondary)] uppercase tracking-widest ${h === 'Ações' ? 'text-right' : 'text-left'}`}>{h}</th>))}</tr></thead>
             <tbody><AnimatePresence>{filteredOperadores.map((op) => (
-              <motion.tr key={op.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="border-b border-slate-50 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white text-xs font-black shrink-0">{op.name.charAt(0)}</div><div><p className="text-sm font-bold text-slate-800 dark:text-white">{op.name}</p><p className="text-xs text-slate-400">{op.email}</p></div></div></td>
+              <motion.tr key={op.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="border-b border-[var(--border-default)]/50 hover:bg-[var(--surface-elevated)] transition-colors">
+                <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-accent)] flex items-center justify-center text-white text-xs font-black shrink-0">{op.name.charAt(0)}</div><div><p className="text-sm font-bold text-[var(--text-primary)]">{op.name}</p><p className="text-xs text-[var(--text-secondary)]">{op.email}</p></div></div></td>
                 <td className="px-6 py-4"><RoleBadge role={op.role} /></td>
-                <td className="px-6 py-4"><span className="text-sm font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg">{op.pa}</span></td>
-                <td className="px-6 py-4 text-xs text-slate-400">{new Date(op.createdAt).toLocaleDateString('pt-BR')}</td>
-                <td className="px-6 py-4"><button onClick={() => setOperadores((prev) => prev.map((o) => o.id === op.id ? { ...o, active: !o.active } : o))} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${op.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}><span className={`w-1.5 h-1.5 rounded-full ${op.active ? 'bg-emerald-500' : 'bg-slate-400'}`} />{op.active ? 'Ativo' : 'Inativo'}</button></td>
+                <td className="px-6 py-4"><span className="text-sm font-mono text-[var(--text-primary)] bg-[var(--surface-elevated)] px-2 py-1 rounded-lg">{op.pa}</span></td>
+                <td className="px-6 py-4 text-xs text-[var(--text-secondary)]">{new Date(op.createdAt).toLocaleDateString('pt-BR')}</td>
+                <td className="px-6 py-4"><button onClick={() => setOperadores((prev) => prev.map((o) => o.id === op.id ? { ...o, active: !o.active } : o))} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${op.active ? 'bg-[var(--status-success)]/10 text-[var(--status-success)]' : 'bg-[var(--surface-elevated)] text-[var(--text-secondary)]'}`}><span className={`w-1.5 h-1.5 rounded-full ${op.active ? 'bg-[var(--status-success)]' : 'bg-[var(--text-secondary)]'}`} />{op.active ? 'Ativo' : 'Inativo'}</button></td>
                 <td className="px-6 py-4"><div className="flex items-center justify-end gap-2">
-                  <button onClick={() => { setEditingOperador(op); setForm({ name: op.name, email: op.email, role: op.role, pa: op.pa, password: '' }); setErrors({}); setIsModalOpen(true); }} className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center hover:bg-blue-100 transition-colors"><FeatherIcon name="edit-2" className="w-3.5 h-3.5" /></button>
-                  {confirmDeleteId === op.id ? (<div className="flex gap-1"><button onClick={() => { setOperadores((prev) => prev.filter((o) => o.id !== op.id)); setConfirmDeleteId(null); showToast('Removido.', 'error'); }} className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-bold">Confirmar</button><button onClick={() => setConfirmDeleteId(null)} className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold">Cancelar</button></div>) : (<button onClick={() => setConfirmDeleteId(op.id)} className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-500 flex items-center justify-center hover:bg-red-100 transition-colors"><FeatherIcon name="trash-2" className="w-3.5 h-3.5" /></button>)}
+                  <button onClick={() => { setEditingOperador(op); setForm({ name: op.name, email: op.email, role: op.role, pa: op.pa, password: '' }); setErrors({}); setIsModalOpen(true); }} className="w-8 h-8 rounded-lg bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] flex items-center justify-center hover:bg-[var(--brand-primary)]/20 transition-colors"><FeatherIcon name="edit-2" className="w-3.5 h-3.5" /></button>
+                  {confirmDeleteId === op.id ? (<div className="flex gap-1"><button onClick={() => { setOperadores((prev) => prev.filter((o) => o.id !== op.id)); setConfirmDeleteId(null); showToast('Removido.', 'error'); }} className="px-3 py-1.5 rounded-lg bg-[var(--status-error)] text-white text-xs font-bold">Confirmar</button><button onClick={() => setConfirmDeleteId(null)} className="px-3 py-1.5 rounded-lg bg-[var(--surface-elevated)] text-[var(--text-primary)] text-xs font-bold">Cancelar</button></div>) : (<button onClick={() => setConfirmDeleteId(op.id)} className="w-8 h-8 rounded-lg bg-[var(--status-error)]/10 text-[var(--status-error)] flex items-center justify-center hover:bg-[var(--status-error)]/20 transition-colors"><FeatherIcon name="trash-2" className="w-3.5 h-3.5" /></button>)}
                 </div></td>
               </motion.tr>
             ))}</AnimatePresence></tbody>
@@ -446,7 +446,7 @@ const AppContent: React.FC = () => {
     });
   }, [baseVisibleContracts, filters, debouncedSearch]);
 
-  const totalSaldo = useMemo(() => filteredContracts.reduce((acc, c) => acc + (c.originSheet === 'Geral' ? c.saldoDevedor : 0), 0), [filteredContracts]);
+  const totalSaldo = useMemo(() => filteredContracts.reduce((acc, c) => acc + c.saldoDevedor, 0), [filteredContracts]);
   const handleMarkAllAsRead = useCallback(() => { setNotifications((prev: AppNotification[]) => prev.map((n) => ({ ...n, read: true }))); }, [setNotifications]);
   const navigateToDetails = useCallback((id: string) => { setGlobalSearch(id); setActiveView(VIEWS.DETALHAMENTO); }, [setGlobalSearch, setActiveView]);
 
@@ -456,11 +456,16 @@ const AppContent: React.FC = () => {
       const result = precalculatedResult || importContracts(newContracts);
       setSyncResult(result);
       runIAAnalysis(newContracts); // Dispara análise de especialista
+      
+      // Resetar filtros para garantir que os novos dados apareçam
+      setFilters({ pa: 'Todas', gerente: 'Todos', produto: 'Todos' });
+      setGlobalSearch('');
+      
       // Esconde o toast após 6 segundos
       setTimeout(() => setSyncResult(null), 6000);
     }
     setActiveView(VIEWS.DASHBOARD);
-  }, [importContracts, setActiveView, runIAAnalysis]);
+  }, [importContracts, setActiveView, runIAAnalysis, setFilters, setGlobalSearch]);
 
   if (!isAuthenticated || !loggedUser) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
@@ -553,9 +558,9 @@ const AppContent: React.FC = () => {
                     {activeView === VIEWS.GESTAO_TAREFAS && <GestaoTarefasView tasks={tasks} contracts={allContracts} onUpdateTaskStatus={updateTaskStatus} onNavigateToDetails={navigateToDetails} />}
                     {activeView === VIEWS.NOTIFICACOES && <NotificacoesView notifications={notifications} onNavigateToDetails={navigateToDetails} onMarkAllAsRead={handleMarkAllAsRead} />}
                     {activeView === VIEWS.CARTOES_ATRASO && <CartoesAtrasoView contracts={filteredContracts} isDarkMode={darkMode} onNavigateToDetails={navigateToDetails} />}
+                    {activeView === VIEWS.PREJUIZO && <PrejuizoView contracts={filteredContracts} onNavigateToDetails={navigateToDetails} />}
                     {activeView === VIEWS.CALCULADORA && <CalculadoraRenegociacaoView isDarkMode={darkMode} initialValue={calculatorInitialValue} />}
                     {activeView === VIEWS.ADMINISTRACAO && <AdministracaoView />}
-                    {activeView === VIEWS.DESIGN_SYSTEM && <DesignSystemView />}
                   </>
                 )}
               </motion.div>

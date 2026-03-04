@@ -39,6 +39,15 @@ const BOXES_DATA = [
     description: "Reserva financeira (Provisão para Créditos de Liquidação Duvidosa) destinada a cobrir perdas esperadas, conforme exigências regulatórias bancárias."
   },
   {
+    key: 'prejuizo',
+    title: "CONTRATOS EM PREJUÍZO",
+    subtitle: "SOMATÓRIA COLUNA M",
+    icon: "alert-octagon",
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
+    description: "Somatória de valores de contratos em prejuízo (Coluna M da planilha PREJ 02). Representa perdas efetivadas."
+  },
+  {
     key: 'loss',
     title: "EXPOSIÇÃO DE RISCO",
     subtitle: "CÁLCULO PROJETADO",
@@ -63,19 +72,24 @@ export const DashboardKpiGrid: React.FC<{ contratos: Contract[], onCardClick?: (
     // 3. Contagem de Linhas (Excluindo cabeçalho)
     const totalLinhas = contratos.length;
 
-    // 4. Exposição de Risco: Cálculo de risco baseado no saldo real (15% conforme solicitado)
+    // 4. Prejuízo (Coluna M)
+    const totalPrejuizo = contratos.filter(c => c.originSheet === 'Prejuizo').reduce((acc, c) => acc + (c.saldoDevedor || 0), 0);
+    const countPrejuizo = contratos.filter(c => c.originSheet === 'Prejuizo').length;
+
+    // 5. Exposição de Risco: Cálculo de risco baseado no saldo real (15% conforme solicitado)
     const lossExpectancy = totalSaldoY * 0.15;
 
     return {
       cash: { val: `R$ ${totalSaldoY.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, critical: false },
       roll: { val: `${totalLinhas}`, critical: totalLinhas > 1000 },
       pcld: { val: `R$ ${totalPcldZ.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, critical: false },
+      prejuizo: { val: `R$ ${totalPrejuizo.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} (${countPrejuizo})`, critical: totalPrejuizo > 0 },
       loss: { val: `R$ ${lossExpectancy.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`, critical: lossExpectancy > THRESHOLDS.LOSS_EXPECTANCY_WARN }
     };
   }, [contratos]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
       {BOXES_DATA.map((box) => {
         const metric = processedMetrics[box.key as keyof typeof processedMetrics];
         

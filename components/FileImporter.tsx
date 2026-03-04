@@ -10,9 +10,10 @@ interface FileImporterProps {
   onDataImported: (data: Contract[], result: ImportSyncResult) => void;
   label?: string;
   isCardImport?: boolean;
+  isPrejuizoImport?: boolean;
 }
 
-const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Clique para carregar", isCardImport = false }) => {
+const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Clique para carregar", isCardImport = false, isPrejuizoImport = false }) => {
   const { upsertDatabase } = useApp();
   const [loading, setLoading] = useState(false);
 
@@ -69,6 +70,10 @@ const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Cl
               // Planilha de Cartões: Dívida na Coluna I, Sócio na Coluna C
               cleanBalance = parseBrazilianCurrency(row['I']);
               socioName = String(row['C'] || '').trim().toUpperCase();
+            } else if (isPrejuizoImport) {
+              // Planilha Prejuízo: Valor na Coluna M, Sócio na Coluna C (assumindo C como padrão se não especificado)
+              cleanBalance = parseBrazilianCurrency(row['M']);
+              socioName = String(row['C'] || '').trim().toUpperCase();
             } else {
               // Planilha Geral: Saldo na Coluna Y (Consolidado), Provisão na Coluna Z
               // Sócio geralmente na C ou E. Tentamos C primeiro, depois E.
@@ -80,16 +85,27 @@ const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Cl
             const cleanCPF = String(row['D'] || '').replace(/\D/g, '');
             const cleanManagerEmail = String(row['B'] || '').toLowerCase().trim().replace(/\s/g, '.') + "@sicoob.com.br";
 
+            // Geração de ID robusta: Tenta usar a coluna de ID, senão compõe com CPF + Index
+            let generatedId = "";
+            if (isCardImport) {
+              generatedId = String(row['M'] || `CARD-${cleanCPF}-${index}`);
+            } else if (isPrejuizoImport) {
+              // Prejuízo não tem ID claro, usamos CPF + Index para garantir unicidade
+              generatedId = `PREJ-${cleanCPF}-${index}`;
+            } else {
+              generatedId = String(row['K'] || `GERAL-${cleanCPF}-${index}`);
+            }
+
             return {
-              id: String(row[isCardImport ? 'M' : 'K'] || `ID-${index}-${Date.now()}`),
+              id: generatedId,
               clientName: socioName,
               socio: socioName,
               cpfCnpj: cleanCPF,
               phone: String(row['F'] || ''),
-              product: isCardImport ? 'CARTÃO DE CRÉDITO' : String(row['J'] || 'CRÉDITO'),
+              product: isCardImport ? 'CARTÃO DE CRÉDITO' : (isPrejuizoImport ? 'PREJUÍZO' : String(row['J'] || 'CRÉDITO')),
               saldoDevedor: cleanBalance,
               valorProvisionado: cleanProvision,
-              daysOverdue: parseInt(row[isCardImport ? 'N' : 'P']) || 0,
+              daysOverdue: parseInt(row[isCardImport ? 'N' : (isPrejuizoImport ? 'N' : 'P')]) || 0,
               dueDate: '', 
               status: ContractStatus.Overdue,
               pa: String(row['A'] || '0000').toUpperCase(),
@@ -97,10 +113,10 @@ const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Cl
               managerEmail: cleanManagerEmail,
               managerId: 'sys',
               region: 'SUL',
-              originSheet: (isCardImport ? 'Cartoes' : 'Geral') as 'Geral' | 'Cartoes',
+              originSheet: (isCardImport ? 'Cartoes' : (isPrejuizoImport ? 'Prejuizo' : 'Geral')) as 'Geral' | 'Cartoes' | 'Prejuizo',
               timestamp: timestamp
             };
-          }).filter((c: Contract) => c.saldoDevedor > 0 || (isCardImport && c.socio !== ""));
+          }).filter((c: Contract) => c.saldoDevedor > 0 || (isCardImport && c.socio !== "") || (isPrejuizoImport && c.socio !== ""));
           
           resolve(mapped);
         } catch (err) {
@@ -127,7 +143,8 @@ const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Cl
       }
 
       const signature = `SIG-BATCH-${allMapped.length}-${Date.now()}`;
-      const result = upsertDatabase(allMapped, signature, isCardImport ? 'Cartoes' : 'Geral');
+      const origin = isCardImport ? 'Cartoes' : (isPrejuizoImport ? 'Prejuizo' : 'Geral');
+      const result = upsertDatabase(allMapped, signature, origin);
       onDataImported(allMapped, result);
     } catch (err) {
       console.error("Erro no processamento:", err);
@@ -141,10 +158,10 @@ const FileImporter: React.FC<FileImporterProps> = ({ onDataImported, label = "Cl
     <div className="w-full">
       <label className={`flex flex-col items-center justify-center w-full h-48 border-4 border-dashed rounded-[3rem] cursor-pointer transition-all ${loading ? 'opacity-50' : 'hover:bg-slate-50 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
         <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
-          <FeatherIcon name={loading ? "loader" : (isCardImport ? "package" : "upload")} className={`w-10 h-10 mb-4 ${loading ? 'animate-spin text-slate-400' : (isCardImport ? 'text-rose-500' : 'text-blue-500')}`} />
+          <FeatherIcon name={loading ? "loader" : (isCardImport ? "package" : (isPrejuizoImport ? "alert-octagon" : "upload"))} className={`w-10 h-10 mb-4 ${loading ? 'animate-spin text-slate-400' : (isCardImport ? 'text-rose-500' : (isPrejuizoImport ? 'text-amber-500' : 'text-blue-500'))}`} />
           <p className="mb-2 text-sm font-black text-slate-700 dark:text-slate-300 uppercase italic">{loading ? 'Processando Lote...' : label}</p>
           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-tight">
-            {isCardImport ? 'Colunas Requeridas: C (Sócio), I (Exposição)' : 'Colunas Requeridas: Y (Saldo), Z (Provisão)'}
+            {isCardImport ? 'Colunas Requeridas: C (Sócio), I (Exposição)' : (isPrejuizoImport ? 'Colunas Requeridas: C (Sócio), M (Prejuízo)' : 'Colunas Requeridas: Y (Saldo), Z (Provisão)')}
           </p>
         </div>
         <input 

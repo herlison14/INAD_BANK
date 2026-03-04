@@ -18,13 +18,14 @@ type Periodo = 'Diario' | 'Semanal' | 'Quinzenal' | 'Mensal';
 // ─────────────────────────────────────────────────────────────────────────────
 const AnaliseDinamicaPro: React.FC<{ contracts: Contract[] }> = ({ contracts }) => {
   const [periodo, setPeriodo] = useState<Periodo>('Semanal');
+  const [selectedManager, setSelectedManager] = useState<string | null>(null);
 
   // 1. ENGINE DE PROCESSAMENTO (Engenharia Anti-Duplicidade + Estratégia de Crédito)
   const chartData = useMemo(() => {
     const agora = new Date();
     
     // Filtro de Temporalidade
-    const filtrados = contracts.filter(c => {
+    let filtrados = contracts.filter(c => {
       const dataRef = new Date(c.timestamp);
       const diffDias = (agora.getTime() - dataRef.getTime()) / (1000 * 3600 * 24);
       if (periodo === 'Diario') return diffDias <= 1;
@@ -33,6 +34,11 @@ const AnaliseDinamicaPro: React.FC<{ contracts: Contract[] }> = ({ contracts }) 
       if (periodo === 'Mensal') return diffDias <= 30;
       return true;
     });
+
+    // Filtro por Gerente Selecionado
+    if (selectedManager) {
+      filtrados = filtrados.filter(c => c.gerente === selectedManager);
+    }
 
     // Agrupamento Imutável por Gerente para evitar duplicidade de barras
     const statsMap = new Map<string, { resolvidos: number; total: number }>();
@@ -83,28 +89,38 @@ const AnaliseDinamicaPro: React.FC<{ contracts: Contract[] }> = ({ contracts }) 
       {/* CABEÇALHO E FILTROS DINÂMICOS */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-800 dark:text-white">
-            Análise de <span className="text-blue-600">Recuperação</span>
+          <h2 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter italic">
+            Análise de <span className="text-[var(--brand-primary)]">Recuperação</span>
           </h2>
-          <p className="text-slate-500 text-sm">Acompanhamento de performance por ciclo temporal</p>
+          <p className="text-[var(--text-secondary)] text-[10px] font-bold uppercase tracking-widest mt-1">Acompanhamento de performance por ciclo temporal</p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex">
+          <div className="bg-[var(--surface-background)] p-1 rounded-2xl flex border border-[var(--border-default)]">
             {(['Diario', 'Semanal', 'Quinzenal', 'Mensal'] as Periodo[]).map((p) => (
               <button
                 key={p}
                 onClick={() => setPeriodo(p)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                   periodo === p 
-                    ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' 
-                    : 'text-slate-400 hover:text-slate-600'
+                    ? 'bg-[var(--brand-primary)] text-white shadow-lg shadow-blue-500/20' 
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 {p}
               </button>
             ))}
           </div>
+
+          {selectedManager && (
+            <button 
+              onClick={() => setSelectedManager(null)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--status-error)]/10 text-[var(--status-error)] rounded-xl text-[10px] font-black uppercase tracking-widest border border-[var(--status-error)]/20 hover:bg-[var(--status-error)]/20 transition-all"
+            >
+              <FeatherIcon name="x-circle" className="w-4 h-4" />
+              LIMPAR FILTRO
+            </button>
+          )}
 
           <button 
             onClick={handleExportFullReport}
@@ -118,7 +134,7 @@ const AnaliseDinamicaPro: React.FC<{ contracts: Contract[] }> = ({ contracts }) 
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* GRÁFICO PRINCIPAL COM RESET DE CANVAS (KEY) */}
-        <div className="lg:col-span-3 bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm h-[400px]">
+        <div className="lg:col-span-3 bg-[var(--surface-container)] rounded-[3rem] p-10 border border-[var(--border-default)] shadow-sm h-[400px]">
           <ResponsiveContainer width="100%" height="100%" key={`render-${periodo}`}>
             <ComposedChart data={chartData}>
               <defs>
@@ -158,28 +174,32 @@ const AnaliseDinamicaPro: React.FC<{ contracts: Contract[] }> = ({ contracts }) 
         </div>
 
         {/* RANKING LADO A LADO PARA O GERENTE */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col">
-          <h3 className="text-sm font-black text-slate-800 dark:text-white mb-4 uppercase tracking-widest">
+        <div className="bg-[var(--surface-container)] rounded-[3rem] p-8 border border-[var(--border-default)] shadow-sm overflow-hidden flex flex-col max-h-[200px]">
+          <h3 className="text-xs font-black text-[var(--text-primary)] mb-6 uppercase tracking-[0.2em] italic">
             Performance Ranking
           </h3>
-          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar scroll-smooth">
+          <div className="flex-1 overflow-y-auto space-y-5 pr-2 custom-scrollbar scroll-smooth">
             {chartData.map((manager, index) => (
-              <div key={manager.fullName} className="flex items-center justify-between group">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${
-                    index === 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
+              <button 
+                key={manager.fullName} 
+                onClick={() => setSelectedManager(selectedManager === manager.fullName ? null : manager.fullName)}
+                className={`w-full flex items-center justify-between group p-2 rounded-2xl transition-all ${selectedManager === manager.fullName ? 'bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20' : 'hover:bg-[var(--surface-background)]'}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-[10px] font-black ${
+                    index === 0 ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-[var(--surface-background)] text-[var(--text-secondary)] border border-[var(--border-default)]'
                   }`}>
                     {index + 1}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{manager.fullName}</p>
-                    <p className="text-[10px] text-slate-400">{manager.resolvidos} acordos no período</p>
+                  <div className="text-left">
+                    <p className="text-xs font-black text-[var(--text-primary)] uppercase italic tracking-tight">{manager.fullName}</p>
+                    <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{manager.resolvidos} acordos</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black text-blue-600">{manager.eficiencia}%</span>
+                  <span className="text-sm font-black text-[var(--brand-primary)] italic">{manager.eficiencia}%</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>

@@ -31,13 +31,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       { name: VIEWS.DASHBOARD, icon: 'home' },
       { name: VIEWS.IMPORTACAO, icon: 'upload' },
       { name: VIEWS.CARTOES_ATRASO, icon: 'package' },
+      { name: VIEWS.PREJUIZO, icon: 'alert-octagon' },
       { name: VIEWS.ANALISE_DINAMICA, icon: 'pie-chart' },
       { name: VIEWS.CALCULADORA, icon: 'calculator' },
       { name: VIEWS.DETALHAMENTO, icon: 'list' },
       { name: VIEWS.INSIGHTS_IA, icon: 'cpu' },
       { name: VIEWS.GESTAO_TAREFAS, icon: 'check-square' },
       { name: VIEWS.NOTIFICACOES, icon: 'bell' },
-      { name: VIEWS.DESIGN_SYSTEM, icon: 'layers' },
     ];
 
     if (userRole === UserRole.Admin || userRole === UserRole.Coordenador) {
@@ -73,12 +73,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 
                 <div className="flex items-center gap-1.5 relative z-10">
-                  {item.name === 'Notificações' && unreadNotificationCount > 0 && (
+                  {item.name === VIEWS.NOTIFICACOES && unreadNotificationCount > 0 && (
                       <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-[var(--brand-primary)]' : 'bg-[var(--status-error)] text-white animate-pulse'}`}>
                           {unreadNotificationCount}
                       </span>
                   )}
-                  {item.name === 'Gestão de Tarefas' && pendingTaskCount > 0 && (
+                  {item.name === VIEWS.GESTAO_TAREFAS && pendingTaskCount > 0 && (
                       <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-[var(--brand-primary)]' : 'bg-indigo-500 text-white'}`}>
                           {pendingTaskCount}
                       </span>

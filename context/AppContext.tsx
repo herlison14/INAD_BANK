@@ -24,12 +24,13 @@ interface AppContextType {
   isSyncing: boolean;
   lastGeralUpdate: string | null;
   lastCartoesUpdate: string | null;
+  lastPrejuizoUpdate: string | null;
   lastUpdateTimestamp: string | null;
   aiAnalysis: string | null;
   setAiAnalysis: React.Dispatch<React.SetStateAction<string | null>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   addAuditLog: (userEmail: string, action: string, details: string) => void;
-  upsertDatabase: (newContracts: Contract[], fileSignature: string, origin?: 'Geral' | 'Cartoes') => ImportSyncResult;
+  upsertDatabase: (newContracts: Contract[], fileSignature: string, origin?: 'Geral' | 'Cartoes' | 'Prejuizo') => ImportSyncResult;
   importContracts: (newContracts: Contract[]) => ImportSyncResult;
   executarVarreduraCredito: (contractsToScan?: Contract[]) => number;
   clearDatabase: () => void;
@@ -83,6 +84,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [importHashes, setImportHashes] = useState<string[]>([]);
   const [lastGeralUpdate, setLastGeralUpdate] = useState<string | null>(null);
   const [lastCartoesUpdate, setLastCartoesUpdate] = useState<string | null>(null);
+  const [lastPrejuizoUpdate, setLastPrejuizoUpdate] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online');
@@ -92,8 +94,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const lastUpdateTimestamp = useMemo(() => {
     if (allContracts.length === 0) return null;
-    return lastGeralUpdate || lastCartoesUpdate;
-  }, [lastGeralUpdate, lastCartoesUpdate, allContracts.length]);
+    return lastGeralUpdate || lastCartoesUpdate || lastPrejuizoUpdate;
+  }, [lastGeralUpdate, lastCartoesUpdate, lastPrejuizoUpdate, allContracts.length]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -125,6 +127,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setImportHashes([]);
     setLastGeralUpdate(null);
     setLastCartoesUpdate(null);
+    setLastPrejuizoUpdate(null);
     setAiAnalysis(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem(DB_KEY);
@@ -195,7 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { inserted, duplicates, tasksGenerated, notificationsGenerated };
   }, [addAuditLog, executarVarreduraCredito]);
 
-  const upsertDatabase = useCallback((newContracts: Contract[], fileSignature: string, origin: 'Geral' | 'Cartoes' = 'Geral'): ImportSyncResult => {
+  const upsertDatabase = useCallback((newContracts: Contract[], fileSignature: string, origin: 'Geral' | 'Cartoes' | 'Prejuizo' = 'Geral'): ImportSyncResult => {
     setSyncStatus('syncing');
     const now = new Date().toLocaleString('pt-BR');
     let finalContracts: Contract[] = [];
@@ -211,6 +214,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAiAnalysis(null);
 
     if (origin === 'Cartoes') setLastCartoesUpdate(now);
+    else if (origin === 'Prejuizo') setLastPrejuizoUpdate(now);
     else setLastGeralUpdate(now);
 
     addAuditLog('SISTEMA', 'IMPORTAÇÃO', `Carga de ${newContracts.length} registros via canal ${origin} concluída.`);
@@ -232,9 +236,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const value = useMemo(() => ({
     allContracts, notifications, setNotifications, tasks, setTasks, users, auditLogs, importHashes, syncStatus, isSyncing,
-    lastGeralUpdate, lastCartoesUpdate, lastUpdateTimestamp, aiAnalysis, setAiAnalysis, setUsers, addAuditLog, 
+    lastGeralUpdate, lastCartoesUpdate, lastPrejuizoUpdate, lastUpdateTimestamp, aiAnalysis, setAiAnalysis, setUsers, addAuditLog, 
     upsertDatabase, importContracts, executarVarreduraCredito, clearDatabase, updateTaskStatus, triggerManualSync
-  }), [allContracts, notifications, tasks, users, auditLogs, importHashes, syncStatus, isSyncing, lastGeralUpdate, lastCartoesUpdate, lastUpdateTimestamp, aiAnalysis, upsertDatabase, importContracts, executarVarreduraCredito, clearDatabase, updateTaskStatus, addAuditLog, triggerManualSync]);
+  }), [allContracts, notifications, tasks, users, auditLogs, importHashes, syncStatus, isSyncing, lastGeralUpdate, lastCartoesUpdate, lastPrejuizoUpdate, lastUpdateTimestamp, aiAnalysis, upsertDatabase, importContracts, executarVarreduraCredito, clearDatabase, updateTaskStatus, addAuditLog, triggerManualSync]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -2,6 +2,7 @@
 import React, { useMemo } from 'react';
 import { Contract, UserRole } from '../types';
 import DashboardKpiGrid from './DashboardKpiGrid';
+import SheetBreakdownGrid from './SheetBreakdownGrid';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, BarChart, Bar, PieChart, Pie
@@ -50,9 +51,11 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, o
     if (isEmpty) return [];
     const geral = contracts.filter(c => c.originSheet === 'Geral').reduce((s, c) => s + c.saldoDevedor, 0);
     const cartoes = contracts.filter(c => c.originSheet === 'Cartoes').reduce((s, c) => s + c.saldoDevedor, 0);
+    const prejuizo = contracts.filter(c => c.originSheet === 'Prejuizo').reduce((s, c) => s + c.saldoDevedor, 0);
     return [
-      { name: 'Crédito Estratégico', value: geral, color: '#4f46e5' },
-      { name: 'Fluxo Cartões', value: cartoes, color: '#f43f5e' }
+      { name: 'Crédito Estratégico', value: geral, color: 'var(--brand-primary)' },
+      { name: 'Fluxo Cartões', value: cartoes, color: 'var(--status-error)' },
+      { name: 'Prejuízo (PREJ 02)', value: prejuizo, color: '#f59e0b' } // amber-500
     ];
   }, [contracts, isEmpty]);
 
@@ -79,6 +82,15 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, o
 
       {/* PAINEL DE INDICADORES CRÍTICOS */}
       <DashboardKpiGrid contratos={contracts} onCardClick={onCardClick} />
+
+      {/* BREAKDOWN POR PLANILHA IMPORTADA */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 ml-4">
+          <div className="w-3 h-3 bg-[var(--brand-primary)] rounded-full"></div>
+          <h3 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tighter italic">Performance por Canal de Origem</h3>
+        </div>
+        <SheetBreakdownGrid contracts={contracts} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         {/* GRÁFICO: ENVELHECIMENTO DA DÍVIDA (AGING) */}
@@ -130,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, o
                     dataKey="value"
                 >
                   {portfolioMix.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? 'var(--brand-primary)' : 'var(--status-error)'} stroke="none" />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                   ))}
                   {isEmpty && <Cell fill="var(--border-default)" />}
                 </Pie>
@@ -147,7 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, o
              {portfolioMix.map((item, index) => (
                 <div key={item.name} className="flex justify-between items-center p-5 rounded-[2rem] bg-[var(--surface-background)] border border-[var(--border-default)] hover:scale-[1.02] transition-transform">
                     <div className="flex items-center gap-4">
-                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: index === 0 ? 'var(--brand-primary)' : 'var(--status-error)'}}></div>
+                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></div>
                         <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-wider">{item.name}</span>
                     </div>
                     <span className="text-sm font-black italic tabular-nums text-[var(--text-primary)]">{formatCurrency(item.value)}</span>
