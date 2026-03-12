@@ -1,124 +1,177 @@
 
 import React, { useMemo } from 'react';
-import { DealStatus } from '../types';
+import { Contract, UserRole } from '../types';
 import DashboardKpiGrid from './DashboardKpiGrid';
+import SheetBreakdownGrid from './SheetBreakdownGrid';
 import { 
   XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, BarChart, Bar, PieChart, Pie
 } from 'recharts';
+import { formatCurrency } from '../utils/formatter';
 import FeatherIcon from './FeatherIcon';
-import { motion } from 'framer-motion';
+import SmartQueryBar from './SmartQueryBar';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 
-const Dashboard: React.FC = () => {
-  const { deals, stages } = useApp();
+interface DashboardProps {
+    contracts: Contract[];
+    filterName: string;
+    onNavigateToDetails: (id: string) => void;
+    onCardClick?: (key: string) => void;
+    onContractClick?: (contract: Contract) => void;
+    isDarkMode: boolean;
+    userRole: UserRole;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ contracts, onNavigateToDetails, onCardClick, onContractClick, isDarkMode, userRole }) => {
+  const { lastUpdateTimestamp } = useApp();
   
-  const isEmpty = deals.length === 0;
+  const isEmpty = contracts.length === 0;
 
-  const pipelineData = useMemo(() => {
-    return stages.map(stage => ({
-      name: stage.name,
-      value: deals.filter(d => d.stageId === stage.id).reduce((acc, d) => acc + d.value, 0),
-      count: deals.filter(d => d.stageId === stage.id).length
-    }));
-  }, [deals, stages]);
-
-  const statusMix = useMemo(() => {
-    const won = deals.filter(d => d.status === DealStatus.Won).reduce((acc, d) => acc + d.value, 0);
-    const lost = deals.filter(d => d.status === DealStatus.Lost).reduce((acc, d) => acc + d.value, 0);
-    const open = deals.filter(d => d.status === DealStatus.Open).reduce((acc, d) => acc + d.value, 0);
-    
-    return [
-      { name: 'Ganhos', value: won, color: '#10b981' },
-      { name: 'Perdidos', value: lost, color: '#ef4444' },
-      { name: 'Em Aberto', value: open, color: '#3b82f6' }
+  // Buckets de Aging (Envelhecimento da Dívida)
+  const agingBuckets = useMemo(() => {
+    if (isEmpty) return [];
+    const buckets = [
+      { range: '0-30d', value: 0 },
+      { range: '31-60d', value: 0 },
+      { range: '61-90d', value: 0 },
+      { range: '90d+', value: 0 },
     ];
-  }, [deals]);
+
+    contracts.forEach(c => {
+      if (c.daysOverdue <= 30) buckets[0].value += c.saldoDevedor;
+      else if (c.daysOverdue <= 60) buckets[1].value += c.saldoDevedor;
+      else if (c.daysOverdue <= 90) buckets[2].value += c.saldoDevedor;
+      else buckets[3].value += c.saldoDevedor;
+    });
+
+    return buckets;
+  }, [contracts, isEmpty]);
+
+  const portfolioMix = useMemo(() => {
+    if (isEmpty) return [];
+    const geral = contracts.filter(c => c.originSheet === 'Geral').reduce((s, c) => s + c.saldoDevedor, 0);
+    const cartoes = contracts.filter(c => c.originSheet === 'Cartoes').reduce((s, c) => s + c.saldoDevedor, 0);
+    const prejuizo = contracts.filter(c => c.originSheet === 'Prejuizo').reduce((s, c) => s + c.saldoDevedor, 0);
+    return [
+      { name: 'Crédito Estratégico', value: geral, color: 'var(--brand-primary)' },
+      { name: 'Fluxo Cartões', value: cartoes, color: 'var(--status-error)' },
+      { name: 'Prejuízo (PREJ 02)', value: prejuizo, color: '#f59e0b' } // amber-500
+    ];
+  }, [contracts, isEmpty]);
+
+  const axisColor = isDarkMode ? 'var(--text-secondary)' : 'var(--text-secondary)';
 
   return (
     <div className="space-y-10 animate-fade-in pb-20 max-w-[1600px] mx-auto">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">Dashboard de Vendas</h1>
-          <p className="text-slate-400 text-sm">Visão geral da performance comercial</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="bg-[#1a1f2e] border border-[#2e3347] px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#2e3347] transition-all flex items-center gap-2">
-            <FeatherIcon name="download" className="w-4 h-4" /> Exportar
-          </button>
-        </div>
-      </div>
+      <AnimatePresence>
+        {!isEmpty && lastUpdateTimestamp && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="flex items-center gap-3 bg-[var(--status-success)]/10 border border-[var(--status-success)]/20 px-6 py-3 rounded-2xl w-fit mx-auto shadow-lg"
+          >
+            <div className="w-2.5 h-2.5 rounded-full bg-[var(--status-success)] animate-pulse" />
+            <span className="text-[10px] font-black text-[var(--status-success)] uppercase tracking-widest italic">
+              Governança de Dados: Sincronização Consolidada em {lastUpdateTimestamp}
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <SmartQueryBar />
 
       {/* PAINEL DE INDICADORES CRÍTICOS */}
-      <DashboardKpiGrid deals={deals} />
+      <DashboardKpiGrid contratos={contracts} onCardClick={onCardClick} />
+
+      {/* BREAKDOWN POR PLANILHA IMPORTADA */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-3 ml-4">
+          <div className="w-3 h-3 bg-[var(--brand-primary)] rounded-full"></div>
+          <h3 className="text-lg font-black text-[var(--text-primary)] uppercase tracking-tighter italic">Performance por Canal de Origem</h3>
+        </div>
+        <SheetBreakdownGrid contracts={contracts} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* GRÁFICO: VALOR POR ETAPA DO PIPELINE */}
-        <div className="bg-[#1a1f2e] p-8 rounded-3xl border border-[#2e3347] shadow-2xl lg:col-span-2">
+        {/* GRÁFICO: ENVELHECIMENTO DA DÍVIDA (AGING) */}
+        <div className="box-glow p-12 rounded-[4rem] shadow-2xl lg:col-span-2 relative overflow-hidden">
           <div className="flex justify-between items-center mb-12">
             <div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tighter italic">Valor por Etapa</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Distribuição financeira no funil</p>
+              <h3 className="text-2xl font-black text-[var(--text-primary)] uppercase tracking-tighter italic">Análise de Aging (Vencimento)</h3>
+              <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest mt-1">Exposição Financeira por Janela de Atraso</p>
             </div>
-            <div className="p-3 bg-blue-500/10 rounded-2xl text-blue-400">
-               <FeatherIcon name="bar-chart-2" className="w-6 h-6" />
+            <div className="p-4 bg-[var(--brand-primary)]/10 rounded-3xl text-[var(--brand-primary)]">
+               <FeatherIcon name="clock" className="w-6 h-6" />
             </div>
           </div>
           
-          <div className="h-80">
+          <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pipelineData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2e3347" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${(val/1000).toFixed(0)}k`} />
+              <BarChart data={agingBuckets}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-default)" />
+                <XAxis dataKey="range" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `R$ ${(val/1000).toFixed(0)}k`} />
                 <Tooltip 
-                  cursor={{fill: '#2e3347', fillOpacity: 0.4}}
-                  contentStyle={{ backgroundColor: '#1a1f2e', border: '1px solid #2e3347', borderRadius: '16px', color: '#fff' }} 
-                  formatter={(v: any) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                  cursor={{fill: 'var(--surface-elevated)', fillOpacity: 0.1}}
+                  contentStyle={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border-default)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.2)', color: 'var(--text-primary)' }} 
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  formatter={(v: any) => formatCurrency(Number(v || 0))} 
                 />
-                <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="value" radius={[15, 15, 0, 0]}>
+                  {agingBuckets.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === 3 ? 'var(--status-error)' : 'var(--brand-primary)'} fillOpacity={0.8 + (index * 0.05)} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* GRÁFICO: COMPOSIÇÃO DE STATUS */}
-        <div className="bg-[#1a1f2e] p-8 rounded-3xl border border-[#2e3347] shadow-2xl lg:col-span-1">
-          <h3 className="text-xl font-black text-white mb-8 uppercase tracking-tighter italic">Composição de Status</h3>
+        {/* GRÁFICO: COMPOSIÇÃO DE CARTEIRA (MIX) */}
+        <div className="box-glow p-12 rounded-[4rem] shadow-2xl lg:col-span-1 relative overflow-hidden">
+          <h3 className="text-2xl font-black text-[var(--text-primary)] mb-8 uppercase tracking-tighter italic">Composição do Risco</h3>
           <div className="h-64 mb-10">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie 
-                    data={isEmpty ? [{name: 'Sem Dados', value: 1}] : statusMix} 
+                    data={isEmpty ? [{name: 'Sem Dados', value: 1}] : portfolioMix} 
                     cx="50%" cy="50%" 
-                    innerRadius={60} 
-                    outerRadius={90} 
+                    innerRadius={70} 
+                    outerRadius={100} 
                     paddingAngle={8} 
                     dataKey="value"
                 >
-                  {statusMix.map((entry, index) => (
+                  {portfolioMix.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                   ))}
-                  {isEmpty && <Cell fill="#2e3347" />}
+                  {isEmpty && <Cell fill="var(--border-default)" />}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1f2e', border: '1px solid #2e3347', borderRadius: '16px', color: '#fff' }}
-                  formatter={(v: any) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
+                  contentStyle={{ backgroundColor: 'var(--surface-elevated)', border: '1px solid var(--border-default)', borderRadius: '16px', color: 'var(--text-primary)' }}
+                  itemStyle={{ color: 'var(--text-primary)' }}
+                  formatter={(v: any) => formatCurrency(Number(v || 0))} 
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
           
-          <div className="space-y-3">
-             {statusMix.map((item) => (
-                <div key={item.name} className="flex justify-between items-center p-4 rounded-2xl bg-[#0f1117] border border-[#2e3347]">
-                    <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: item.color}}></div>
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{item.name}</span>
+          <div className="space-y-4">
+             {portfolioMix.map((item, index) => (
+                <div key={item.name} className="flex justify-between items-center p-5 rounded-[2rem] bg-[var(--surface-background)] border border-[var(--border-default)] hover:scale-[1.02] transition-transform">
+                    <div className="flex items-center gap-4">
+                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: item.color}}></div>
+                        <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-wider">{item.name}</span>
                     </div>
-                    <span className="text-xs font-bold text-white">{item.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    <span className="text-sm font-black italic tabular-nums text-[var(--text-primary)]">{formatCurrency(item.value)}</span>
                 </div>
              ))}
+             {isEmpty && (
+                <div className="py-10 text-center space-y-4">
+                   <FeatherIcon name="package" className="w-12 h-12 mx-auto text-[var(--border-default)]" />
+                   <p className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.4em]">Aguardando Fluxo de Dados</p>
+                </div>
+             )}
           </div>
         </div>
       </div>

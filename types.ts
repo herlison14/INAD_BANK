@@ -140,7 +140,6 @@ export const VIEWS = {
   DETALHAMENTO: 'Detalhamento',
   INSIGHTS_IA: 'Insights IA',
   NOTIFICACOES: 'Notificações',
-  CRM_VENDAS: 'CRM de Vendas',
 } as const;
 
 export type ViewName = (typeof VIEWS)[keyof typeof VIEWS];

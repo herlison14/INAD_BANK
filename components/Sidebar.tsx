@@ -8,8 +8,11 @@ interface SidebarProps {
   activeView: ViewName;
   setActiveView: (view: ViewName) => void;
   unreadNotificationCount: number;
+  pendingTaskCount: number;
+  userRole: UserRole;
   user: User;
   onLogout: () => void;
+  allowedViews: ViewName[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -17,85 +20,110 @@ const Sidebar: React.FC<SidebarProps> = ({
     activeView, 
     setActiveView, 
     unreadNotificationCount, 
+    pendingTaskCount,
     user,
-    onLogout
+    userRole,
+    onLogout,
+    allowedViews
 }) => {
   
   const navItems = useMemo(() => {
-    const items: { name: ViewName; icon: string; label: string }[] = [
-      { name: VIEWS.DASHBOARD, icon: 'home', label: 'Dashboard' },
-      { name: VIEWS.PIPELINE, icon: 'layers', label: 'Pipeline' },
-      { name: VIEWS.NEGOCIOS, icon: 'briefcase', label: 'Negócios' },
-      { name: VIEWS.CONTATOS, icon: 'users', label: 'Contatos' },
-      { name: VIEWS.EMPRESAS, icon: 'grid', label: 'Empresas' },
-      { name: VIEWS.AGENDA, icon: 'calendar', label: 'Agenda' },
-      { name: VIEWS.PRODUTOS, icon: 'package', label: 'Produtos' },
-      { name: VIEWS.RELATORIOS, icon: 'pie-chart', label: 'Relatórios' },
-      { name: VIEWS.AUTOMACOES, icon: 'zap', label: 'Automações' },
-      { name: VIEWS.NOTIFICACOES, icon: 'bell', label: 'Notificações' },
+    const items: { name: ViewName; icon: string }[] = [
+      { name: VIEWS.INICIO, icon: 'home' },
+      { name: VIEWS.IMPORTACAO, icon: 'upload' },
+      { name: VIEWS.CARTOES_ATRASO, icon: 'credit-card' },
+      { name: VIEWS.PREJUIZO, icon: 'alert-octagon' },
+      { name: VIEWS.ANALISE_DINAMICA, icon: 'pie-chart' },
+      { name: VIEWS.CALCULADORA_RENEGOCIACAO, icon: 'calculator' },
+      { name: VIEWS.DETALHAMENTO, icon: 'list' },
+      { name: VIEWS.INSIGHTS_IA, icon: 'cpu' },
+      { name: VIEWS.GESTAO_TAREFAS, icon: 'check-square' },
+      { name: VIEWS.NOTIFICACOES, icon: 'bell' },
     ];
 
-    if (user.role === UserRole.Admin || user.role === UserRole.Manager) {
-      items.push({ name: VIEWS.ADMINISTRACAO, icon: 'settings', label: 'Administração' });
+    if (userRole === UserRole.Admin || userRole === UserRole.Coordenador) {
+      items.push({ name: VIEWS.ADMINISTRACAO, icon: 'sliders' });
     }
 
-    return items;
-  }, [user.role]);
+    // Filter by allowedViews if provided, otherwise show all
+    return items.filter(item => allowedViews.includes(item.name));
+  }, [userRole, allowedViews]);
 
   return (
-    <aside className={`fixed top-0 left-0 h-full bg-[#1a1f2e] shadow-2xl z-50 lg:z-30 transition-all transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:w-72 border-r border-[#2e3347] duration-300`}>
+    <aside className={`fixed top-0 left-0 h-full bg-[var(--surface-container)] backdrop-blur-2xl shadow-2xl z-50 lg:z-30 transition-all transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:w-72 border-r border-[var(--border-default)] duration-300`}>
       <nav className="h-full flex flex-col p-6">
         <div className="flex items-center mb-10 px-2">
-            <div className="w-1.5 h-6 bg-blue-600 rounded-full mr-3"></div>
-            <h2 className="text-sm font-black text-white uppercase tracking-widest italic leading-none">CRM <span className="text-blue-500">PROJETOS</span></h2>
+            <div className="w-1.5 h-6 bg-[var(--brand-primary)] rounded-full mr-3"></div>
+            <h2 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-widest italic leading-none">PAINEL <span className="text-[var(--brand-primary)]">INAD 1.0</span></h2>
         </div>
         
-        <ul className="flex-grow space-y-1 overflow-y-auto pr-2 custom-scrollbar">
+        <ul className="flex-grow space-y-1.5 overflow-y-auto pr-2 custom-scrollbar scroll-smooth">
           {navItems.map((item, index) => (
             <li key={`${item.name}-${index}`}>
-              <button
-                onClick={() => setActiveView(item.name)}
-                className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all group relative overflow-hidden ${
+              <a
+                href="#"
+                onClick={(e) => { e.preventDefault(); setActiveView(item.name); }}
+                className={`flex items-center justify-between p-3.5 rounded-2xl transition-all group relative overflow-hidden ${
                   activeView === item.name
-                    ? 'bg-blue-600 text-white font-bold shadow-xl shadow-blue-500/30'
-                    : 'text-slate-400 hover:bg-[#2e3347] hover:text-white'
+                    ? 'bg-[var(--brand-primary)] text-white font-bold shadow-xl shadow-blue-500/30'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--surface-background)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <div className="flex items-center relative z-10">
-                    <FeatherIcon name={item.icon} className={`h-4 w-4 transition-colors ${activeView === item.name ? 'text-white' : 'text-slate-400 group-hover:text-blue-400'}`} />
-                    <span className="ml-4 text-[11px] font-black uppercase tracking-wider">{item.label}</span>
+                    <FeatherIcon name={item.icon} className={`h-4 w-4 transition-colors ${activeView === item.name ? 'text-white' : 'text-[var(--text-secondary)] group-hover:text-[var(--brand-primary)]'}`} />
+                    <span className="ml-4 text-[11px] font-black uppercase tracking-wider">{item.name}</span>
                 </div>
                 
-                {item.name === VIEWS.NOTIFICACOES && unreadNotificationCount > 0 && (
-                    <span className={`relative z-10 text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-blue-600' : 'bg-red-500 text-white animate-pulse'}`}>
-                        {unreadNotificationCount}
-                    </span>
+                <div className="flex items-center gap-1.5 relative z-10">
+                  {item.name === VIEWS.NOTIFICACOES && unreadNotificationCount > 0 && (
+                      <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-[var(--brand-primary)]' : 'bg-[var(--status-error)] text-white animate-pulse'}`}>
+                          {unreadNotificationCount}
+                      </span>
+                  )}
+                  {item.name === VIEWS.GESTAO_TAREFAS && pendingTaskCount > 0 && (
+                      <span className={`text-[9px] font-black rounded-full h-5 px-1.5 flex items-center justify-center ${activeView === item.name ? 'bg-white text-[var(--brand-primary)]' : 'bg-indigo-500 text-white'}`}>
+                          {pendingTaskCount}
+                      </span>
+                  )}
+                </div>
+                
+                {activeView === item.name && (
+                   <div className="absolute inset-0 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-accent)] opacity-90"></div>
                 )}
-              </button>
+              </a>
             </li>
           ))}
         </ul>
 
-        <div className="mt-auto border-t border-[#2e3347] pt-6 px-2">
-          <div className="flex items-center gap-3 p-3 mb-4 bg-[#0f1117] rounded-2xl border border-[#2e3347] group hover:border-blue-500/50 transition-all">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 uppercase italic">
+        <div className="mt-auto border-t border-[var(--border-default)] pt-6 px-2">
+          <div className="flex items-center gap-3 p-3 mb-4 bg-[var(--surface-background)] rounded-2xl border-2 border-emerald-500/20 group hover:border-emerald-500/50 transition-all">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 flex items-center justify-center font-black text-white shadow-lg shadow-emerald-500/20 uppercase italic">
               {user.name.charAt(0)}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-black text-white truncate uppercase tracking-tighter leading-none">{user.name}</p>
-              <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mt-1.5">
-                {user.role}
+              <p className="text-xs font-black text-[var(--text-primary)] truncate uppercase tracking-tighter leading-none">{user.name}</p>
+              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mt-1.5">
+                {user.role} • {user.pa || 'GLOBAL'}
               </p>
             </div>
           </div>
 
           <button 
             onClick={onLogout}
-            className="w-full flex items-center gap-3 p-4 text-red-500 hover:bg-red-500/10 rounded-2xl transition-all group"
+            className="w-full flex items-center gap-3 p-4 text-[var(--status-error)] hover:bg-[var(--status-error)]/10 rounded-2xl transition-all group"
           >
-            <FeatherIcon name="log-out" className="w-4 h-4" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Sair</span>
+            <div className="p-2 bg-[var(--status-error)]/10 rounded-lg group-hover:bg-[var(--status-error)]/20 transition-colors">
+              <FeatherIcon name="log-out" className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Encerrar Sessão</span>
           </button>
+          
+          <div className="mt-6 flex flex-col items-center gap-1 opacity-40">
+            <FeatherIcon name="shield" className="w-3 h-3 text-[#718096]" />
+            <p className="text-[7px] text-[#718096] text-center font-black uppercase tracking-[0.3em] italic leading-tight">
+              SISTEMA AUDITADO SICOOB<br/>PAINEL INAD 1.0
+            </p>
+          </div>
         </div>
       </nav>
     </aside>

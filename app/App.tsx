@@ -26,7 +26,6 @@ import AnaliseDinamicaView from '../components/AnaliseDinamicaView';
 import AnaliseDinamicaPro from '../components/AnaliseDinamicaPro';
 import AdministracaoView from '../components/AdministracaoView';
 import UnifiedView from '../components/UnifiedView';
-import CRMView from '../components/crm/CRMView';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ERROR BOUNDARY
@@ -82,8 +81,7 @@ const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     VIEWS.DETALHAMENTO, 
     VIEWS.INSIGHTS_IA, 
     VIEWS.GESTAO_TAREFAS, 
-    VIEWS.NOTIFICACOES,
-    VIEWS.CRM_VENDAS
+    VIEWS.NOTIFICACOES
   ],
 };
 
@@ -272,8 +270,6 @@ const AppContent: React.FC = () => {
         return <PrejuizoView contracts={filteredContracts} onNavigateToDetails={navigateToDetails} />;
       case VIEWS.ADMINISTRACAO: 
         return <AdministracaoView />;
-      case VIEWS.CRM_VENDAS:
-        return <CRMView />;
       default: 
         return <Dashboard contracts={filteredContracts} filterName="Geral" onNavigateToDetails={navigateToDetails} isDarkMode={darkMode} userRole={loggedUser.role} />;
     }
