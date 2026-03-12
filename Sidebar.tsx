@@ -12,6 +12,7 @@ interface SidebarProps {
   userRole: UserRole;
   user: User;
   onLogout: () => void;
+  allowedViews: string[];
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -20,12 +21,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     setActiveView, 
     unreadNotificationCount, 
     user,
-    onLogout
+    onLogout,
+    allowedViews
 }) => {
   
   const navItems = useMemo(() => {
-    return [
+    const allItems = [
       { name: 'Dashboard Principal', icon: 'home' },
+      { name: 'CRM de Vendas', icon: 'briefcase' },
       { name: 'Importação', icon: 'upload' },
       { name: 'Cartões em Atraso', icon: 'package' },
       { name: 'Análise Dinâmica', icon: 'pie-chart' },
@@ -36,7 +39,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       { name: 'Notificações', icon: 'bell' },
       { name: 'Administração', icon: 'sliders' },
     ];
-  }, []);
+
+    return allItems.filter(item => {
+      if (item.name === 'Dashboard Principal') return allowedViews.includes('Início');
+      return allowedViews.includes(item.name);
+    });
+  }, [allowedViews]);
 
   return (
     <aside className={`fixed top-0 left-0 h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl shadow-2xl z-50 lg:z-30 transition-all transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:w-72 border-r border-slate-200 dark:border-slate-800 duration-300`}>

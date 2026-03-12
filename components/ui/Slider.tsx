@@ -20,7 +20,7 @@ export const Slider: React.FC<SliderProps> = ({ min, max, step, value, onValueCh
         step={step}
         value={value[0]}
         onChange={(e) => onValueChange([Number(e.target.value)])}
-        className="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all"
+        className="w-full h-2 bg-[#2e3347] rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all"
       />
     </div>
   );

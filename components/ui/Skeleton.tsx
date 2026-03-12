@@ -3,6 +3,6 @@ import React from 'react';
 
 export const Skeleton: React.FC<{ className?: string }> = ({ className = "" }) => {
   return (
-    <div className={`animate-pulse bg-slate-200 dark:bg-slate-800 rounded-md ${className}`} />
+    <div className={`animate-pulse bg-[#2e3347] rounded-md ${className}`} />
   );
 };

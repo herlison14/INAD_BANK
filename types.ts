@@ -26,18 +26,18 @@ export interface Contract {
   product: string;
   saldoDevedor: number;
   valorProvisionado: number;
-  valorPago?: number; // Adicionado para KPI de Cash Recovery
+  valorPago?: number; 
   dueDate: string;
   daysOverdue: number;
   status: ContractStatus;
   pa: string;
   gerente: string;
-  managerEmail: string; // Adicionado para RLS
+  managerEmail: string; 
   managerId: string;
   region: string;
   originSheet?: 'Geral' | 'Cartoes' | 'Prejuizo';
-  eficiencia?: number; // Eficiência do contrato/gestor
-  timestamp: string; // Data da carga
+  eficiencia?: number; 
+  timestamp: string; 
 }
 
 export interface User {
@@ -49,6 +49,8 @@ export interface User {
   password?: string;
   lastLogin?: string;
   isAutoRegistered?: boolean;
+  createdAt?: string;
+  active?: boolean;
 }
 
 export interface AuditLog {
@@ -66,9 +68,10 @@ export interface Task {
   managerEmail: string;
   description: string;
   status: TaskStatus;
-  priority: 1 | 2; // 1: Crítico, 2: Alerta
+  priority: 1 | 2; 
   creationDate: string;
   aiScore?: number;
+  negotiationHistory?: { date: string; value: string; details: string }[];
 }
 
 export interface AppNotification {
@@ -80,7 +83,6 @@ export interface AppNotification {
   read: boolean;
 }
 
-// Added missing automation types and enums
 export enum TriggerType {
   ON_IMPORT = "Ao Importar",
   ON_DAYS_OVERDUE = "Por Dias de Atraso",
@@ -125,18 +127,27 @@ export interface AutomationLog {
 }
 
 export const VIEWS = {
-  DASHBOARD: 'Dashboard Principal',
-  ANALISE_DINAMICA: 'Análise Dinâmica',
-  IMPORTACAO: 'Importação',
-  INSIGHTS_IA: 'Insights de IA',
-  DETALHAMENTO: 'Detalhamento',
-  GESTAO_TAREFAS: 'Gestao de Tarefas',
-  NOTIFICACOES: 'Notificações',
-  CARTOES_ATRASO: 'Cartões em Atraso',
-  PREJUIZO: 'Prejuízo',
-  CALCULADORA: 'Calculadora',
+  INICIO: 'Início',
+  CARTEIRA: 'Carteira',
+  ATIVIDADES: 'Atividades',
   ADMINISTRACAO: 'Administração',
+  IMPORTACAO: 'Importação',
+  GESTAO_TAREFAS: 'Gestão de Tarefas',
+  CARTOES_ATRASO: 'Cartões em Atraso',
+  ANALISE_DINAMICA: 'Análise Dinâmica',
+  CALCULADORA_RENEGOCIACAO: 'Calculadora de Renegociação',
+  PREJUIZO: 'Prejuízo',
+  DETALHAMENTO: 'Detalhamento',
+  INSIGHTS_IA: 'Insights IA',
+  NOTIFICACOES: 'Notificações',
+  CRM_VENDAS: 'CRM de Vendas',
 } as const;
 
 export type ViewName = (typeof VIEWS)[keyof typeof VIEWS];
+
+export interface AppFilters {
+  pa: string;
+  gerente: string;
+  produto: string;
+}
 

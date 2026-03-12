@@ -23,7 +23,7 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon, trend, isNegative
   }, [value]);
 
   return (
-    <div className="premium-card p-8 rounded-[3rem] flex flex-col justify-between transition-all hover:scale-[1.02] group border border-slate-100 dark:border-slate-800">
+    <div className="premium-card p-8 rounded-[3rem] flex flex-col justify-between transition-all hover:scale-[1.02] group border border-[#2e3347]">
         <div className="flex justify-between items-start mb-6">
             <div className={`p-4 rounded-2xl ${
                 icon === 'dollar' ? 'bg-emerald-500/10 text-emerald-500' : 
@@ -41,8 +41,8 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon, trend, isNegative
         </div>
         
         <div>
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">{title}</p>
-            <p className="text-3xl font-black text-slate-900 dark:text-white italic tracking-tighter tabular-nums leading-none">
+            <p className="text-[10px] font-black text-[#a0aec0] uppercase tracking-[0.2em] mb-2">{title}</p>
+            <p className="text-3xl font-black text-[#f0f4ff] italic tracking-tighter tabular-nums leading-none">
                 {formattedValue}
             </p>
         </div>

@@ -1,244 +1,285 @@
-
-"use client";
-
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { Contract, AppNotification, Task, TaskStatus, User, UserRole, AuditLog } from '../types';
-
-export interface ImportSyncResult {
-  inserted: number;
-  duplicates: number;
-  tasksGenerated: number;
-  notificationsGenerated: number;
-}
+import { 
+  Contact, 
+  Organization, 
+  Deal, 
+  Activity, 
+  Pipeline, 
+  Stage, 
+  Product, 
+  AppNotification, 
+  User, 
+  UserRole, 
+  ViewName, 
+  VIEWS, 
+  AppFilters,
+  DealStatus,
+  ActivityStatus,
+  ActivityType
+} from '../types';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface AppContextType {
-  allContracts: Contract[];
+  // Data
+  deals: Deal[];
+  contacts: Contact[];
+  organizations: Organization[];
+  activities: Activity[];
+  pipelines: Pipeline[];
+  stages: Stage[];
+  products: Product[];
   notifications: AppNotification[];
-  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
-  tasks: Task[];
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   users: User[];
-  auditLogs: AuditLog[];
-  importHashes: string[];
+  
+  // Status
   syncStatus: 'online' | 'syncing' | 'offline';
   isSyncing: boolean;
-  lastGeralUpdate: string | null;
-  lastCartoesUpdate: string | null;
-  lastPrejuizoUpdate: string | null;
   lastUpdateTimestamp: string | null;
-  aiAnalysis: string | null;
-  setAiAnalysis: React.Dispatch<React.SetStateAction<string | null>>;
+  
+  // Auth
+  isAuthenticated: boolean;
+  loggedUser: User | null;
+  login: (user: User) => void;
+  logout: () => void;
+  
+  // Navigation & Filters
+  activeView: ViewName;
+  setActiveView: (view: ViewName) => void;
+  filters: AppFilters;
+  setFilters: React.Dispatch<React.SetStateAction<AppFilters>>;
+  globalSearch: string;
+  setGlobalSearch: (s: string) => void;
+  
+  // Derived Data
+  filteredDeals: Deal[];
+  
+  // Actions
+  setDeals: React.Dispatch<React.SetStateAction<Deal[]>>;
+  setContacts: React.Dispatch<React.SetStateAction<Contact[]>>;
+  setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
+  setActivities: React.Dispatch<React.SetStateAction<Activity[]>>;
+  setNotifications: React.Dispatch<React.SetStateAction<AppNotification[]>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
-  addAuditLog: (userEmail: string, action: string, details: string) => void;
-  upsertDatabase: (newContracts: Contract[], fileSignature: string, origin?: 'Geral' | 'Cartoes' | 'Prejuizo') => ImportSyncResult;
-  importContracts: (newContracts: Contract[]) => ImportSyncResult;
-  executarVarreduraCredito: (contractsToScan?: Contract[]) => number;
-  clearDatabase: () => void;
-  updateTaskStatus: (id: string, status: TaskStatus) => void;
+  
+  addDeal: (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateDeal: (id: string, updates: Partial<Deal>) => void;
+  deleteDeal: (id: string) => void;
+  
+  addContact: (contact: Omit<Contact, 'id' | 'createdAt'>) => void;
+  updateContact: (id: string, updates: Partial<Contact>) => void;
+  
+  addActivity: (activity: Omit<Activity, 'id' | 'createdAt'>) => void;
+  updateActivity: (id: string, updates: Partial<Activity>) => void;
+  
   triggerManualSync: () => void;
+  clearDatabase: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const DB_KEY = 'sicoob_db_recovery_v6';
-const APP_INITIALIZED_KEY = 'sicoob_app_initialized';
+const DB_KEY_PREFIX = 'crm_v1_';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [allContracts, setAllContracts] = useState<Contract[]>([]);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
+  const [stages, setStages] = useState<Stage[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loggedUser, setLoggedUser] = useState<User | null>(null);
+  const [activeView, setActiveView] = useState<ViewName>(VIEWS.PIPELINE);
+  const [filters, setFilters] = useState<AppFilters>({ ownerId: 'Todos', period: 'Este Mês', pipelineId: 'default' });
+  const [globalSearch, setGlobalSearch] = useState('');
+  const debouncedSearch = useDebounce(globalSearch, 300);
+  
+  const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online');
+  const isSyncing = syncStatus === 'syncing';
 
+  // Load Initial Data
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedContracts = localStorage.getItem(DB_KEY);
-      if (savedContracts) {
-        try {
-          const parsed = JSON.parse(savedContracts);
-          if (Array.isArray(parsed)) setAllContracts(parsed);
-        } catch (e) {
-          console.error("Error parsing contracts", e);
+      const load = (key: string, setter: any, defaultValue: any = []) => {
+        const saved = localStorage.getItem(DB_KEY_PREFIX + key);
+        if (saved) {
+          try {
+            setter(JSON.parse(saved));
+          } catch (e) {
+            console.error(`Error loading ${key}`, e);
+            setter(defaultValue);
+          }
+        } else {
+          setter(defaultValue);
         }
-      }
+      };
 
-      const savedUsers = localStorage.getItem('sicoob_db_users_v6');
+      load('deals', setDeals);
+      load('contacts', setContacts);
+      load('organizations', setOrganizations);
+      load('activities', setActivities);
+      load('pipelines', setPipelines, [{ id: 'default', name: 'Funil de Vendas' }]);
+      load('stages', setStages, [
+        { id: 's1', name: 'Prospecção', order: 0, pipelineId: 'default' },
+        { id: 's2', name: 'Qualificação', order: 1, pipelineId: 'default' },
+        { id: 's3', name: 'Proposta', order: 2, pipelineId: 'default' },
+        { id: 's4', name: 'Negociação', order: 3, pipelineId: 'default' },
+        { id: 's5', name: 'Fechado', order: 4, pipelineId: 'default' },
+      ]);
+      load('products', setProducts);
+      load('notifications', setNotifications);
+      
+      const savedUsers = localStorage.getItem(DB_KEY_PREFIX + 'users');
       const defaultAdmin: User = { 
-        id: 'admin-master', 
+        id: 'admin-1', 
         role: UserRole.Admin, 
-        name: 'ADMINISTRADOR MASTER', 
-        email: 'admin@admin', 
-        pa: 'GLOBAL', 
+        name: 'Administrador', 
+        email: 'admin@crm.com', 
         password: '123' 
       };
       if (!savedUsers) {
         setUsers([defaultAdmin]);
       } else {
+        setUsers(JSON.parse(savedUsers));
+      }
+
+      const savedAuth = sessionStorage.getItem('crm_auth');
+      if (savedAuth) {
         try {
-          setUsers(JSON.parse(savedUsers));
-        } catch (e) {
-          setUsers([defaultAdmin]);
-        }
+          const user = JSON.parse(savedAuth);
+          setLoggedUser(user);
+          setIsAuthenticated(true);
+        } catch (e) {}
       }
     }
   }, []);
 
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [importHashes, setImportHashes] = useState<string[]>([]);
-  const [lastGeralUpdate, setLastGeralUpdate] = useState<string | null>(null);
-  const [lastCartoesUpdate, setLastCartoesUpdate] = useState<string | null>(null);
-  const [lastPrejuizoUpdate, setLastPrejuizoUpdate] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [syncStatus, setSyncStatus] = useState<'online' | 'syncing' | 'offline'>('online');
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-
-  const isSyncing = syncStatus === 'syncing';
-
-  const lastUpdateTimestamp = useMemo(() => {
-    if (allContracts.length === 0) return null;
-    return lastGeralUpdate || lastCartoesUpdate || lastPrejuizoUpdate;
-  }, [lastGeralUpdate, lastCartoesUpdate, lastPrejuizoUpdate, allContracts.length]);
-
+  // Persistence
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem(DB_KEY, JSON.stringify(allContracts));
+      localStorage.setItem(DB_KEY_PREFIX + 'deals', JSON.stringify(deals));
+      localStorage.setItem(DB_KEY_PREFIX + 'contacts', JSON.stringify(contacts));
+      localStorage.setItem(DB_KEY_PREFIX + 'organizations', JSON.stringify(organizations));
+      localStorage.setItem(DB_KEY_PREFIX + 'activities', JSON.stringify(activities));
+      localStorage.setItem(DB_KEY_PREFIX + 'pipelines', JSON.stringify(pipelines));
+      localStorage.setItem(DB_KEY_PREFIX + 'stages', JSON.stringify(stages));
+      localStorage.setItem(DB_KEY_PREFIX + 'products', JSON.stringify(products));
+      localStorage.setItem(DB_KEY_PREFIX + 'users', JSON.stringify(users));
+      localStorage.setItem(DB_KEY_PREFIX + 'notifications', JSON.stringify(notifications));
     }
-  }, [allContracts]);
+  }, [deals, contacts, organizations, activities, pipelines, stages, products, users, notifications]);
 
-  const addAuditLog = useCallback((userEmail: string, action: string, details: string) => {
-    const newLog: AuditLog = {
-      id: `log-${Date.now()}`,
-      userEmail,
-      action,
-      details,
-      timestamp: new Date().toLocaleString('pt-BR')
+  const login = useCallback((user: User) => {
+    setLoggedUser(user);
+    setIsAuthenticated(true);
+    sessionStorage.setItem('crm_auth', JSON.stringify(user));
+  }, []);
+
+  const logout = useCallback(() => {
+    setIsAuthenticated(false);
+    setLoggedUser(null);
+    sessionStorage.removeItem('crm_auth');
+  }, []);
+
+  const addDeal = useCallback((deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newDeal: Deal = {
+      ...deal,
+      id: `deal-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-    setAuditLogs(prev => [newLog, ...prev].slice(0, 500)); 
+    setDeals(prev => [newDeal, ...prev]);
+  }, []);
+
+  const updateDeal = useCallback((id: string, updates: Partial<Deal>) => {
+    setDeals(prev => prev.map(d => d.id === id ? { ...d, ...updates, updatedAt: new Date().toISOString() } : d));
+  }, []);
+
+  const deleteDeal = useCallback((id: string) => {
+    setDeals(prev => prev.filter(d => d.id !== id));
+  }, []);
+
+  const addContact = useCallback((contact: Omit<Contact, 'id' | 'createdAt'>) => {
+    const newContact: Contact = {
+      ...contact,
+      id: `contact-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setContacts(prev => [newContact, ...prev]);
+  }, []);
+
+  const updateContact = useCallback((id: string, updates: Partial<Contact>) => {
+    setContacts(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  }, []);
+
+  const addActivity = useCallback((activity: Omit<Activity, 'id' | 'createdAt'>) => {
+    const newActivity: Activity = {
+      ...activity,
+      id: `act-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setActivities(prev => [newActivity, ...prev]);
+  }, []);
+
+  const updateActivity = useCallback((id: string, updates: Partial<Activity>) => {
+    setActivities(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
   }, []);
 
   const triggerManualSync = useCallback(() => {
-    addAuditLog('SISTEMA', 'SYNC MANUAL', 'Sincronização forçada pelo usuário.');
     setSyncStatus('syncing');
     setTimeout(() => setSyncStatus('online'), 1000);
-  }, [addAuditLog]);
-
-  const clearDatabase = useCallback(() => {
-    setAllContracts([]);
-    setTasks([]);
-    setNotifications([]);
-    setImportHashes([]);
-    setLastGeralUpdate(null);
-    setLastCartoesUpdate(null);
-    setLastPrejuizoUpdate(null);
-    setAiAnalysis(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(DB_KEY);
-      localStorage.setItem(APP_INITIALIZED_KEY, 'true');
-    }
-    addAuditLog('SISTEMA', 'HARD RESET', 'Protocolo de limpeza total executado. Dashboard zerado.');
-  }, [addAuditLog]);
-
-  const executarVarreduraCredito = useCallback((contractsToScan?: Contract[]) => {
-    const targetContracts = contractsToScan || allContracts;
-    
-    const contratosCriticos = targetContracts
-      .filter(c => c.saldoDevedor > 0 && c.daysOverdue > 0)
-      .sort((a, b) => {
-        const scoreA = a.saldoDevedor * a.daysOverdue;
-        const scoreB = b.saldoDevedor * b.daysOverdue;
-        return scoreB - scoreA;
-      });
-
-    const novasTarefasIA = contratosCriticos.slice(0, 10).map(contrato => ({
-      id: `AUTO-${contrato.id}-${Date.now()}`,
-      contractId: contrato.id,
-      contractClient: contrato.clientName,
-      managerEmail: contrato.managerEmail,
-      description: `[VARREDURA AUTOMÁTICA] Risco Crítico Identificado: R$ ${contrato.saldoDevedor.toLocaleString('pt-BR')} em atraso há ${contrato.daysOverdue} dias. Ação imediata requerida para recuperação de ativos no PA ${contrato.pa}.`,
-      status: TaskStatus.Pendente,
-      priority: (contrato.daysOverdue > 60 ? 1 : 2) as 1 | 2,
-      creationDate: new Date().toLocaleString('pt-BR'),
-      aiScore: 99
-    }));
-
-    setTasks(prev => {
-      const idsExistentes = new Set(prev.map(t => t.id));
-      const unicas = novasTarefasIA.filter(t => !idsExistentes.has(t.id));
-      return [...unicas, ...prev];
-    });
-
-    return novasTarefasIA.length;
-  }, [allContracts]);
-
-  const importContracts = useCallback((newContracts: Contract[]): ImportSyncResult => {
-    setSyncStatus('syncing');
-    
-    let inserted = 0;
-    let duplicates = 0;
-    let finalContracts: Contract[] = [];
-    
-    setAllContracts(prev => {
-      const existingIds = new Set(prev.map(c => c.id));
-      const filtered = newContracts.filter(c => {
-        if (existingIds.has(c.id)) {
-          duplicates++;
-          return false;
-        }
-        inserted++;
-        return true;
-      });
-      finalContracts = [...prev, ...filtered];
-      return finalContracts;
-    });
-
-    const tasksGenerated = executarVarreduraCredito(newContracts); // Scan the new ones
-    const notificationsGenerated = 0;
-
-    setSyncStatus('online');
-    addAuditLog('SISTEMA', 'IMPORTAÇÃO', `Carga de ${inserted} novos registros concluída.`);
-    
-    return { inserted, duplicates, tasksGenerated, notificationsGenerated };
-  }, [addAuditLog, executarVarreduraCredito]);
-
-  const upsertDatabase = useCallback((newContracts: Contract[], fileSignature: string, origin: 'Geral' | 'Cartoes' | 'Prejuizo' = 'Geral'): ImportSyncResult => {
-    setSyncStatus('syncing');
-    const now = new Date().toLocaleString('pt-BR');
-    let finalContracts: Contract[] = [];
-
-    setAllContracts(prev => {
-      const otherContracts = prev.filter(c => c.originSheet !== origin);
-      finalContracts = [...otherContracts, ...newContracts];
-      return finalContracts;
-    });
-
-    setImportHashes(prev => [...prev, fileSignature]);
-    setSyncStatus('online');
-    setAiAnalysis(null);
-
-    if (origin === 'Cartoes') setLastCartoesUpdate(now);
-    else if (origin === 'Prejuizo') setLastPrejuizoUpdate(now);
-    else setLastGeralUpdate(now);
-
-    addAuditLog('SISTEMA', 'IMPORTAÇÃO', `Carga de ${newContracts.length} registros via canal ${origin} concluída.`);
-    
-    // Dispara varredura usando os novos contratos para evitar estado obsoleto
-    const tasksGenerated = executarVarreduraCredito(newContracts);
-    
-    return { 
-      inserted: newContracts.length, 
-      duplicates: 0, 
-      tasksGenerated, 
-      notificationsGenerated: 0 
-    };
-  }, [addAuditLog, executarVarreduraCredito]);
-
-  const updateTaskStatus = useCallback((id: string, status: TaskStatus) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status } : t));
   }, []);
 
+  const clearDatabase = useCallback(() => {
+    setDeals([]);
+    setContacts([]);
+    setOrganizations([]);
+    setActivities([]);
+    setNotifications([]);
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith(DB_KEY_PREFIX)) localStorage.removeItem(key);
+      });
+    }
+  }, []);
+
+  const filteredDeals = useMemo(() => {
+    const s = debouncedSearch.toLowerCase();
+    return deals.filter(d => {
+      const matchSearch = !s || d.title.toLowerCase().includes(s);
+      const matchOwner = filters.ownerId === 'Todos' || d.ownerId === filters.ownerId;
+      const matchPipeline = filters.pipelineId === 'default' || d.pipelineId === filters.pipelineId;
+      return matchSearch && matchOwner && matchPipeline;
+    });
+  }, [deals, debouncedSearch, filters]);
+
+  const lastUpdateTimestamp = useMemo(() => new Date().toLocaleString(), [deals, contacts, activities]);
+
   const value = useMemo(() => ({
-    allContracts, notifications, setNotifications, tasks, setTasks, users, auditLogs, importHashes, syncStatus, isSyncing,
-    lastGeralUpdate, lastCartoesUpdate, lastPrejuizoUpdate, lastUpdateTimestamp, aiAnalysis, setAiAnalysis, setUsers, addAuditLog, 
-    upsertDatabase, importContracts, executarVarreduraCredito, clearDatabase, updateTaskStatus, triggerManualSync
-  }), [allContracts, notifications, tasks, users, auditLogs, importHashes, syncStatus, isSyncing, lastGeralUpdate, lastCartoesUpdate, lastPrejuizoUpdate, lastUpdateTimestamp, aiAnalysis, upsertDatabase, importContracts, executarVarreduraCredito, clearDatabase, updateTaskStatus, addAuditLog, triggerManualSync]);
+    deals, contacts, organizations, activities, pipelines, stages, products, notifications, users,
+    syncStatus, isSyncing, lastUpdateTimestamp,
+    isAuthenticated, loggedUser, login, logout,
+    activeView, setActiveView, filters, setFilters, globalSearch, setGlobalSearch,
+    filteredDeals,
+    setDeals, setContacts, setOrganizations, setActivities, setNotifications, setUsers,
+    addDeal, updateDeal, deleteDeal,
+    addContact, updateContact,
+    addActivity, updateActivity,
+    triggerManualSync, clearDatabase
+  }), [
+    deals, contacts, organizations, activities, pipelines, stages, products, notifications, users,
+    syncStatus, isSyncing, lastUpdateTimestamp,
+    isAuthenticated, loggedUser, login, logout,
+    activeView, filters, globalSearch,
+    filteredDeals,
+    addDeal, updateDeal, deleteDeal,
+    addContact, updateContact,
+    addActivity, updateActivity,
+    triggerManualSync, clearDatabase
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
